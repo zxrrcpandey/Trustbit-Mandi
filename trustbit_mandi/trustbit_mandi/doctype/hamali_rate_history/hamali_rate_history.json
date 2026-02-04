@@ -1,0 +1,45 @@
+{
+ "actions": [],
+ "creation": "2026-02-05 10:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "effective_date",
+  "upto_60_kg",
+  "more_than_60_kg"
+ ],
+ "fields": [
+  {
+   "fieldname": "effective_date",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Effective Date"
+  },
+  {
+   "fieldname": "upto_60_kg",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Upto 60 KG"
+  },
+  {
+   "fieldname": "more_than_60_kg",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "More Than 60 KG"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-02-05 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Trustbit Mandi",
+ "name": "Hamali Rate History",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

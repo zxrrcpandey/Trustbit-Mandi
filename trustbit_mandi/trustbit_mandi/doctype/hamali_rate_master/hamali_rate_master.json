@@ -1,0 +1,104 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:{hamali_for}",
+ "creation": "2026-02-05 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "hamali_for",
+  "is_active",
+  "section_break_current",
+  "effective_date",
+  "upto_60_kg",
+  "column_break_current",
+  "more_than_60_kg",
+  "section_break_history",
+  "rate_history"
+ ],
+ "fields": [
+  {
+   "fieldname": "hamali_for",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Hamali For",
+   "options": "Mandi\nChoupal\nOther",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active"
+  },
+  {
+   "fieldname": "section_break_current",
+   "fieldtype": "Section Break",
+   "label": "Current Rate"
+  },
+  {
+   "default": "Today",
+   "fieldname": "effective_date",
+   "fieldtype": "Datetime",
+   "label": "Effective Date",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "upto_60_kg",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Upto 60 KG",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_current",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "more_than_60_kg",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "More Than 60 KG",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_history",
+   "fieldtype": "Section Break",
+   "label": "Rate History"
+  },
+  {
+   "fieldname": "rate_history",
+   "fieldtype": "Table",
+   "label": "Rate History",
+   "options": "Hamali Rate History"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-02-05 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Trustbit Mandi",
+ "name": "Hamali Rate Master",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

@@ -1,0 +1,396 @@
+{
+ "actions": [],
+ "autoname": "GP-.DD.-.MM.-.YYYY.-.####",
+ "creation": "2026-02-05 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_transaction",
+  "transaction_no",
+  "contract_number",
+  "column_break_trans",
+  "contract_date",
+  "as_flag",
+  "section_farmer",
+  "farmer_name",
+  "address",
+  "column_break_farmer",
+  "phone_number",
+  "vehicle_number",
+  "gsm",
+  "section_product",
+  "kg_of_bag",
+  "expected_bag",
+  "actual_bag",
+  "column_break_product",
+  "nos_kg",
+  "actual_weight",
+  "auction_rate",
+  "amount",
+  "section_hamali",
+  "hamali_rate",
+  "hamali_rate_master_ref",
+  "column_break_hamali",
+  "hamali_rate_include",
+  "hamali",
+  "net_amount",
+  "section_tax",
+  "mandi_tax_rate",
+  "mandi_tax",
+  "column_break_tax",
+  "nirashrit_tax_rate",
+  "nirashrit_tax",
+  "total_tax",
+  "section_tax_balance",
+  "tax_balance_html",
+  "mandi_tax_paid",
+  "mandi_tax_balance",
+  "nirashrit_tax_paid",
+  "nirashrit_tax_balance",
+  "section_payment",
+  "payment_status",
+  "pay_date",
+  "payment_mode",
+  "column_break_payment",
+  "payment_details",
+  "section_bank",
+  "bank_account",
+  "bank_name",
+  "column_break_bank",
+  "account_number",
+  "branch",
+  "ifsc_code"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_transaction",
+   "fieldtype": "Section Break",
+   "label": "Transaction Details"
+  },
+  {
+   "fieldname": "transaction_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Transaction No",
+   "read_only": 1
+  },
+  {
+   "fieldname": "contract_number",
+   "fieldtype": "Data",
+   "label": "Contract Number"
+  },
+  {
+   "fieldname": "column_break_trans",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "contract_date",
+   "fieldtype": "Date",
+   "label": "Contract Date"
+  },
+  {
+   "fieldname": "as_flag",
+   "fieldtype": "Select",
+   "label": "A/S Flag",
+   "options": "A\nS"
+  },
+  {
+   "fieldname": "section_farmer",
+   "fieldtype": "Section Break",
+   "label": "Farmer Details"
+  },
+  {
+   "fieldname": "farmer_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Farmer Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "address",
+   "fieldtype": "Small Text",
+   "label": "Address"
+  },
+  {
+   "fieldname": "column_break_farmer",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "phone_number",
+   "fieldtype": "Data",
+   "label": "Phone Number"
+  },
+  {
+   "fieldname": "vehicle_number",
+   "fieldtype": "Data",
+   "label": "Vehicle Number"
+  },
+  {
+   "fieldname": "gsm",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "GSM (Commodity)",
+   "options": "गेहूं\nचावल\nमक्का/भुट्टा\nजौ\nबाजरा वर्ग\nबाजरा\nमूंग"
+  },
+  {
+   "fieldname": "section_product",
+   "fieldtype": "Section Break",
+   "label": "Product Details"
+  },
+  {
+   "default": "60",
+   "fieldname": "kg_of_bag",
+   "fieldtype": "Float",
+   "label": "KG of Bag"
+  },
+  {
+   "fieldname": "expected_bag",
+   "fieldtype": "Float",
+   "label": "Expected Bag"
+  },
+  {
+   "fieldname": "actual_bag",
+   "fieldtype": "Float",
+   "label": "Actual Bag"
+  },
+  {
+   "fieldname": "column_break_product",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "nos_kg",
+   "fieldtype": "Float",
+   "label": "Nos KG"
+  },
+  {
+   "fieldname": "actual_weight",
+   "fieldtype": "Float",
+   "label": "Actual Weight (Quintal)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "auction_rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Auction Rate"
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_hamali",
+   "fieldtype": "Section Break",
+   "label": "Hamali (Labor) Details"
+  },
+  {
+   "default": "7.50",
+   "fieldname": "hamali_rate",
+   "fieldtype": "Currency",
+   "label": "Hamali Rate"
+  },
+  {
+   "fieldname": "hamali_rate_master_ref",
+   "fieldtype": "Link",
+   "label": "Hamali Rate Master Ref",
+   "options": "Hamali Rate Master"
+  },
+  {
+   "fieldname": "column_break_hamali",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "hamali_rate_include",
+   "fieldtype": "Check",
+   "label": "Hamali Rate Include"
+  },
+  {
+   "fieldname": "hamali",
+   "fieldtype": "Currency",
+   "label": "Hamali",
+   "read_only": 1
+  },
+  {
+   "fieldname": "net_amount",
+   "fieldtype": "Currency",
+   "label": "Net Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_tax",
+   "fieldtype": "Section Break",
+   "label": "Tax Calculation"
+  },
+  {
+   "default": "1",
+   "fieldname": "mandi_tax_rate",
+   "fieldtype": "Percent",
+   "label": "Mandi Tax Rate"
+  },
+  {
+   "fieldname": "mandi_tax",
+   "fieldtype": "Currency",
+   "label": "Mandi Tax",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_tax",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0.2",
+   "fieldname": "nirashrit_tax_rate",
+   "fieldtype": "Percent",
+   "label": "Nirashrit Tax Rate"
+  },
+  {
+   "fieldname": "nirashrit_tax",
+   "fieldtype": "Currency",
+   "label": "Nirashrit Tax",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_tax",
+   "fieldtype": "Currency",
+   "label": "Total Tax",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_tax_balance",
+   "fieldtype": "Section Break",
+   "label": "Tax Balance Status"
+  },
+  {
+   "fieldname": "tax_balance_html",
+   "fieldtype": "HTML",
+   "label": "Tax Balance"
+  },
+  {
+   "fieldname": "mandi_tax_paid",
+   "fieldtype": "Currency",
+   "hidden": 1,
+   "label": "Mandi Tax Paid"
+  },
+  {
+   "fieldname": "mandi_tax_balance",
+   "fieldtype": "Currency",
+   "hidden": 1,
+   "label": "Mandi Tax Balance"
+  },
+  {
+   "fieldname": "nirashrit_tax_paid",
+   "fieldtype": "Currency",
+   "hidden": 1,
+   "label": "Nirashrit Tax Paid"
+  },
+  {
+   "fieldname": "nirashrit_tax_balance",
+   "fieldtype": "Currency",
+   "hidden": 1,
+   "label": "Nirashrit Tax Balance"
+  },
+  {
+   "fieldname": "section_payment",
+   "fieldtype": "Section Break",
+   "label": "Payment Details"
+  },
+  {
+   "default": "Pending",
+   "fieldname": "payment_status",
+   "fieldtype": "Select",
+   "label": "Payment Status",
+   "options": "Pending\nPaid\nPartial\nCancelled"
+  },
+  {
+   "default": "Today",
+   "fieldname": "pay_date",
+   "fieldtype": "Date",
+   "label": "Payment Date"
+  },
+  {
+   "fieldname": "payment_mode",
+   "fieldtype": "Select",
+   "label": "Payment Mode",
+   "options": "\nCash\nBank Transfer\nCheque\nUPI\nNEFT\nRTGS"
+  },
+  {
+   "fieldname": "column_break_payment",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "payment_details",
+   "fieldtype": "Small Text",
+   "label": "Payment Details"
+  },
+  {
+   "fieldname": "section_bank",
+   "fieldtype": "Section Break",
+   "label": "Bank Details"
+  },
+  {
+   "fieldname": "bank_account",
+   "fieldtype": "Link",
+   "label": "Bank Account",
+   "options": "Mandi Bank Master"
+  },
+  {
+   "fieldname": "bank_name",
+   "fieldtype": "Data",
+   "label": "Bank Name"
+  },
+  {
+   "fieldname": "column_break_bank",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "account_number",
+   "fieldtype": "Data",
+   "label": "Account Number"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Data",
+   "label": "Branch"
+  },
+  {
+   "fieldname": "ifsc_code",
+   "fieldtype": "Data",
+   "label": "IFSC Code"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-02-05 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Trustbit Mandi",
+ "name": "Grain Purchase",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "farmer_name,transaction_no,contract_number",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "farmer_name",
+ "track_changes": 1
+}
