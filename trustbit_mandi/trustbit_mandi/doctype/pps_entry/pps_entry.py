@@ -3,15 +3,43 @@
 
 import frappe
 from frappe.model.document import Document
+from frappe.utils import flt
 
 
 class PPSEntry(Document):
 	def before_save(self):
+		"""Calculate amount in words and fetch bank details"""
+		self.set_amount_in_words()
+		self.fetch_bank_details()
+		self.set_cheque_date()
+
+	def set_cheque_date(self):
+		"""Set cheque date same as posting date if not set"""
+		if self.posting_date and not self.cheque_date:
+			self.cheque_date = self.posting_date
+
+	def fetch_bank_details(self):
+		"""Fetch bank details when bank is selected"""
+		if self.bank:
+			try:
+				bank = frappe.get_doc("Mandi Bank Master", self.bank)
+				self.bank_name = bank.bank_name
+				self.bank_branch = bank.branch
+				self.ifsc_code = bank.ifsc_code
+				if not self.account_number:
+					self.account_number = bank.account_number
+			except frappe.DoesNotExistError:
+				pass
+
+	def set_amount_in_words(self):
+		"""Convert amount to words in Indian format"""
 		if self.amount:
-			self.amount_in_words = self.convert_to_words(self.amount)
+			self.amount_in_words = self.convert_to_words(flt(self.amount))
+		else:
+			self.amount_in_words = ""
 
 	def convert_to_words(self, amount):
-		"""Convert amount to words in Indian format"""
+		"""Convert amount to words in Indian format (Crore, Lakh, Thousand)"""
 		ones = ['', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE',
 				'TEN', 'ELEVEN', 'TWELVE', 'THIRTEEN', 'FOURTEEN', 'FIFTEEN', 'SIXTEEN',
 				'SEVENTEEN', 'EIGHTEEN', 'NINETEEN']
