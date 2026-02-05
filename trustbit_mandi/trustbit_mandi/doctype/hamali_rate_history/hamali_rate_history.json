@@ -20,13 +20,13 @@
    "fieldname": "upto_60_kg",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Upto 60 KG"
+   "label": "60 KG"
   },
   {
    "fieldname": "more_than_60_kg",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "More Than 60 KG"
+   "label": "80 KG"
   }
  ],
  "index_web_pages_for_search": 1,
