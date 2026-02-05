@@ -3,7 +3,7 @@
 
 import frappe
 from frappe.model.document import Document
-from frappe.utils import flt, nowdate, now_datetime, getdate
+from frappe.utils import flt, nowdate, now_datetime, getdate, get_datetime
 import random
 
 
@@ -16,6 +16,7 @@ class GrainPurchase(Document):
 
 	def before_save(self):
 		"""Calculate all values before saving"""
+		self.fetch_hamali_rate()  # Refetch rate based on current kg_of_bag
 		self.fetch_bank_details()
 		self.calculate_values()
 
@@ -57,8 +58,8 @@ class GrainPurchase(Document):
 					row_date = getdate(row.effective_date)
 					# Check if this rate was effective on or before contract date
 					if row_date <= contract_date:
-						# Use full datetime for comparison to get the latest entry
-						row_datetime = row.effective_date
+						# Use get_datetime for proper comparison
+						row_datetime = get_datetime(row.effective_date)
 						if best_datetime is None or row_datetime > best_datetime:
 							best_datetime = row_datetime
 							best_match = row
