@@ -1,27 +1,244 @@
 // Copyright (c) 2026, Trustbit Software and contributors
 // For license information, please see license.txt
-// Note: All business logic (calculations, defaults, bank/hamali fetching) is in Python
 
 frappe.ui.form.on('Grain Purchase', {
+    onload: function(frm) {
+        if (frm.is_new() && !frm.doc.transaction_no) {
+            generate_transaction_no(frm);
+        }
+        if (frm.is_new()) {
+            if (!frm.doc.mandi_tax_rate) {
+                frm.set_value('mandi_tax_rate', 1);
+            }
+            if (!frm.doc.nirashrit_tax_rate) {
+                frm.set_value('nirashrit_tax_rate', 0.2);
+            }
+        }
+    },
+
     refresh: function(frm) {
-        // Save & Print button
         if (!frm.is_new()) {
             frm.add_custom_button(__('Save & Print'), function() {
                 frm.save().then(() => {
                     frm.print_doc();
                 });
             }).addClass('btn-primary');
+
+            frm.add_custom_button(__('Refresh Hamali Rate'), function() {
+                fetch_hamali_rate(frm, true);
+            }, __('Actions'));
         }
 
-        // View Tax Balance button
         frm.add_custom_button(__('View Tax Balance'), function() {
             show_tax_balance_dialog();
         }, __('Actions'));
 
-        // Display tax balance dashboard
+        if (frm.is_new() && frm.doc.contract_date) {
+            setTimeout(function() {
+                fetch_hamali_rate(frm, false);
+            }, 300);
+        }
+
+        setTimeout(function() {
+            calculate_values(frm);
+        }, 500);
+
         fetch_tax_balance(frm);
+    },
+
+    contract_date: function(frm) {
+        if (frm.doc.contract_date) {
+            fetch_hamali_rate(frm, false);
+        }
+    },
+
+    kg_of_bag: function(frm) {
+        if (frm.doc.contract_date) {
+            fetch_hamali_rate(frm, false);
+        }
+        calculate_values(frm);
+    },
+
+    actual_bag: function(frm) {
+        calculate_values(frm);
+    },
+
+    nos_kg: function(frm) {
+        calculate_values(frm);
+    },
+
+    auction_rate: function(frm) {
+        calculate_values(frm);
+    },
+
+    hamali_rate: function(frm) {
+        calculate_values(frm);
+    },
+
+    hamali_rate_include: function(frm) {
+        calculate_values(frm);
+    },
+
+    mandi_tax_rate: function(frm) {
+        calculate_taxes(frm);
+    },
+
+    nirashrit_tax_rate: function(frm) {
+        calculate_taxes(frm);
+    },
+
+    amount: function(frm) {
+        calculate_taxes(frm);
+    },
+
+    bank_account: function(frm) {
+        if (frm.doc.bank_account) {
+            frappe.call({
+                method: 'frappe.client.get',
+                args: {
+                    doctype: 'Mandi Bank Master',
+                    name: frm.doc.bank_account
+                },
+                callback: function(r) {
+                    if (r.message) {
+                        frm.set_value('account_number', r.message.account_number);
+                        frm.set_value('bank_name', r.message.bank_name);
+                        frm.set_value('branch', r.message.branch);
+                        frm.set_value('ifsc_code', r.message.ifsc_code);
+                        frappe.show_alert({
+                            message: __('Bank details loaded'),
+                            indicator: 'green'
+                        }, 2);
+                    }
+                }
+            });
+        } else {
+            frm.set_value('account_number', '');
+            frm.set_value('bank_name', '');
+            frm.set_value('branch', '');
+            frm.set_value('ifsc_code', '');
+        }
     }
 });
+
+function fetch_hamali_rate(frm, force_refresh) {
+    if (!frm.doc.contract_date) return;
+    if (!frm.is_new() && !force_refresh) return;
+
+    let kg_per_bag = flt(frm.doc.kg_of_bag, 60);
+
+    frappe.call({
+        method: 'frappe.client.get',
+        args: { doctype: 'Hamali Rate Master', name: 'Mandi' },
+        callback: function(r) {
+            if (r.message && r.message.is_active) {
+                let master = r.message;
+                let applicable_rate = null;
+                let contract_date_obj = frappe.datetime.str_to_obj(frm.doc.contract_date + ' 23:59:59');
+                let contract_timestamp = contract_date_obj.getTime();
+
+                // Find best matching rate from history
+                if (master.rate_history && master.rate_history.length > 0) {
+                    let best_match = null, best_match_timestamp = 0;
+                    for (let i = 0; i < master.rate_history.length; i++) {
+                        let history = master.rate_history[i];
+                        let history_timestamp = frappe.datetime.str_to_obj(history.effective_date).getTime();
+                        if (history_timestamp <= contract_timestamp && history_timestamp > best_match_timestamp) {
+                            best_match = history;
+                            best_match_timestamp = history_timestamp;
+                        }
+                    }
+                    applicable_rate = best_match;
+                }
+
+                // Fallback to current master rate
+                if (!applicable_rate) {
+                    applicable_rate = {
+                        effective_date: master.effective_date,
+                        upto_60_kg: master.upto_60_kg,
+                        more_than_60_kg: master.more_than_60_kg
+                    };
+                }
+
+                // Select rate based on bag weight (60 KG or 80 KG)
+                let hamali_rate = kg_per_bag <= 60 ? flt(applicable_rate.upto_60_kg, 0) : flt(applicable_rate.more_than_60_kg, 0);
+                frm.set_value('hamali_rate', hamali_rate);
+
+                frappe.show_alert({
+                    message: __('Hamali Rate: {0} (for {1} KG bags)', [hamali_rate.toFixed(2), kg_per_bag <= 60 ? '60' : '80']),
+                    indicator: 'green'
+                }, 3);
+
+                setTimeout(function() { calculate_values(frm); }, 200);
+            } else {
+                if (!frm.doc.hamali_rate) frm.set_value('hamali_rate', 7.50);
+            }
+        },
+        error: function() {
+            if (!frm.doc.hamali_rate) frm.set_value('hamali_rate', 7.50);
+            setTimeout(function() { calculate_values(frm); }, 200);
+        }
+    });
+}
+
+function calculate_values(frm) {
+    if (!frm.doc) return;
+
+    let kg_per_bag = flt(frm.doc.kg_of_bag, 60);
+    let actual_bags = flt(frm.doc.actual_bag, 0);
+    let nos_kg = flt(frm.doc.nos_kg, 0);
+    let auction_rate = flt(frm.doc.auction_rate, 0);
+    let hamali_rate = flt(frm.doc.hamali_rate, 0);
+    let hamali_include = frm.doc.hamali_rate_include ? 1 : 0;
+
+    // Weight in Quintal
+    let actual_weight = (actual_bags * (kg_per_bag / 100)) + (nos_kg / 100);
+    let amount = auction_rate * actual_weight;
+    let total_bags_for_hamali = actual_bags + (nos_kg / 100);
+    let hamali = 0, net_amount = 0;
+
+    if (hamali_include === 1) {
+        hamali = 0;
+        net_amount = Math.round(amount);
+    } else {
+        hamali = Math.round(total_bags_for_hamali * hamali_rate);
+        net_amount = Math.round(amount - hamali);
+    }
+
+    frappe.model.set_value(frm.doctype, frm.docname, 'actual_weight', flt(actual_weight, 2));
+    frappe.model.set_value(frm.doctype, frm.docname, 'amount', flt(amount, 2));
+    frappe.model.set_value(frm.doctype, frm.docname, 'hamali', hamali);
+    frappe.model.set_value(frm.doctype, frm.docname, 'net_amount', net_amount);
+
+    setTimeout(function() { calculate_taxes(frm); }, 100);
+}
+
+function calculate_taxes(frm) {
+    if (!frm.doc) return;
+
+    let amount = flt(frm.doc.amount, 0);
+    let mandi_tax_rate = flt(frm.doc.mandi_tax_rate, 1);
+    let nirashrit_tax_rate = flt(frm.doc.nirashrit_tax_rate, 0.2);
+
+    let mandi_tax = Math.round((amount * mandi_tax_rate) / 100 * 100) / 100;
+    let nirashrit_tax = Math.round((amount * nirashrit_tax_rate) / 100 * 100) / 100;
+    let total_tax = Math.round((mandi_tax + nirashrit_tax) * 100) / 100;
+
+    frm.set_value('mandi_tax', mandi_tax);
+    frm.set_value('nirashrit_tax', nirashrit_tax);
+    frm.set_value('total_tax', total_tax);
+}
+
+function generate_transaction_no(frm) {
+    if (!frm.doc.transaction_no) {
+        let today = new Date();
+        let year = today.getFullYear();
+        let month = String(today.getMonth() + 1).padStart(2, '0');
+        let day = String(today.getDate()).padStart(2, '0');
+        let random = Math.floor(Math.random() * 90000) + 10000;
+        frm.set_value('transaction_no', 'TXN-' + year + '-' + month + '-' + day + '-' + random);
+    }
+}
 
 function fetch_tax_balance(frm) {
     frappe.call({
@@ -67,7 +284,6 @@ function fetch_tax_balance(frm) {
                     let mandi_balance = mandi_paid - mandi_liability;
                     let nirashrit_balance = nirashrit_paid - nirashrit_liability;
 
-                    // Update read-only fields for display
                     frm.set_value('mandi_tax_paid', mandi_paid);
                     frm.set_value('mandi_tax_balance', mandi_balance);
                     frm.set_value('nirashrit_tax_paid', nirashrit_paid);
@@ -269,10 +485,10 @@ function show_tax_balance_dialog() {
     });
 }
 
-function flt(value) {
-    if (value === null || value === undefined || value === '') return 0;
+function flt(value, default_value) {
+    if (value === null || value === undefined || value === '') return default_value || 0;
     let num = parseFloat(value);
-    return isNaN(num) ? 0 : num;
+    return isNaN(num) ? (default_value || 0) : num;
 }
 
 function format_number(num) {
