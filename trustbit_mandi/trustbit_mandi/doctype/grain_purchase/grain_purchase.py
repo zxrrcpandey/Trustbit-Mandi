@@ -48,16 +48,19 @@ class GrainPurchase(Document):
 			contract_date = getdate(self.contract_date)
 			applicable_rate = None
 
-			# Find applicable rate from history
+			# Find applicable rate from history (latest entry for the contract date)
 			if master.rate_history:
 				best_match = None
-				best_date = None
+				best_datetime = None
 
 				for row in master.rate_history:
 					row_date = getdate(row.effective_date)
+					# Check if this rate was effective on or before contract date
 					if row_date <= contract_date:
-						if best_date is None or row_date > best_date:
-							best_date = row_date
+						# Use full datetime for comparison to get the latest entry
+						row_datetime = row.effective_date
+						if best_datetime is None or row_datetime > best_datetime:
+							best_datetime = row_datetime
 							best_match = row
 
 				if best_match:
@@ -67,7 +70,7 @@ class GrainPurchase(Document):
 			if not applicable_rate:
 				applicable_rate = master
 
-			# Select rate based on bag weight
+			# Select rate based on bag weight (60 KG or 80 KG)
 			if kg_per_bag <= 60:
 				self.hamali_rate = flt(applicable_rate.upto_60_kg, 2)
 			else:
