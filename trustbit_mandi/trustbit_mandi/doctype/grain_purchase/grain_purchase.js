@@ -39,9 +39,11 @@ frappe.ui.form.on('Grain Purchase', {
             }, 300);
         }
 
-        setTimeout(function() {
-            calculate_values(frm);
-        }, 500);
+        if (frm.is_new()) {
+            setTimeout(function() {
+                calculate_values(frm);
+            }, 500);
+        }
 
         fetch_tax_balance(frm);
     },
@@ -307,10 +309,11 @@ function fetch_tax_balance(frm) {
                     let mandi_balance = mandi_paid - mandi_liability;
                     let nirashrit_balance = nirashrit_paid - nirashrit_liability;
 
-                    frm.set_value('mandi_tax_paid', mandi_paid);
-                    frm.set_value('mandi_tax_balance', mandi_balance);
-                    frm.set_value('nirashrit_tax_paid', nirashrit_paid);
-                    frm.set_value('nirashrit_tax_balance', nirashrit_balance);
+                    frm.doc.mandi_tax_paid = mandi_paid;
+                    frm.doc.mandi_tax_balance = mandi_balance;
+                    frm.doc.nirashrit_tax_paid = nirashrit_paid;
+                    frm.doc.nirashrit_tax_balance = nirashrit_balance;
+                    frm.refresh_fields();
 
                     update_tax_balance_dashboard(frm, {
                         mandi_paid: mandi_paid,
