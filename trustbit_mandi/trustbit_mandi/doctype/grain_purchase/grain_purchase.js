@@ -91,6 +91,21 @@ frappe.ui.form.on('Grain Purchase', {
         calculate_taxes(frm);
     },
 
+    paid_amount: function(frm) {
+        let net_amount = flt(frm.doc.net_amount, 0);
+        let paid_amount = flt(frm.doc.paid_amount, 0);
+        frm.set_value('balance_amount', net_amount - paid_amount);
+
+        // Auto-set payment status based on paid amount
+        if (paid_amount <= 0) {
+            frm.set_value('payment_status', 'Pending');
+        } else if (paid_amount >= net_amount) {
+            frm.set_value('payment_status', 'Paid');
+        } else {
+            frm.set_value('payment_status', 'Partial');
+        }
+    },
+
     bank_account: function(frm) {
         if (frm.doc.bank_account) {
             frappe.call({
@@ -213,6 +228,10 @@ function calculate_values(frm) {
     frappe.model.set_value(frm.doctype, frm.docname, 'rounded_amount', rounded_amount);
     frappe.model.set_value(frm.doctype, frm.docname, 'hamali', hamali);
     frappe.model.set_value(frm.doctype, frm.docname, 'net_amount', net_amount);
+
+    // Recalculate balance when net_amount changes
+    let paid_amount = flt(frm.doc.paid_amount, 0);
+    frappe.model.set_value(frm.doctype, frm.docname, 'balance_amount', net_amount - paid_amount);
 
     setTimeout(function() { calculate_taxes(frm); }, 100);
 }

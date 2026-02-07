@@ -53,7 +53,9 @@
   "payment_status",
   "pay_date",
   "payment_mode",
+  "paid_amount",
   "column_break_payment",
+  "balance_amount",
   "payment_details",
   "section_bank",
   "bank_account",
@@ -335,8 +337,20 @@
    "options": "\nCash\nBank Transfer\nCheque\nUPI\nNEFT\nRTGS"
   },
   {
+   "fieldname": "paid_amount",
+   "fieldtype": "Currency",
+   "label": "Paid Amount",
+   "in_list_view": 1
+  },
+  {
    "fieldname": "column_break_payment",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "balance_amount",
+   "fieldtype": "Currency",
+   "label": "Balance Amount",
+   "read_only": 1
   },
   {
    "fieldname": "payment_details",

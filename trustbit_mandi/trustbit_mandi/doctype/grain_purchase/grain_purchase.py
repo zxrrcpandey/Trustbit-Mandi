@@ -140,3 +140,6 @@ class GrainPurchase(Document):
 		self.mandi_tax = round((self.amount * mandi_tax_rate) / 100, 2)
 		self.nirashrit_tax = round((self.amount * nirashrit_tax_rate) / 100, 2)
 		self.total_tax = round(self.mandi_tax + self.nirashrit_tax, 2)
+
+		# Balance Amount = Net Amount - Paid Amount
+		self.balance_amount = flt(self.net_amount) - flt(self.paid_amount)
