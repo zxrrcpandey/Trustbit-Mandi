@@ -1,0 +1,22 @@
+/* Mandi Payment Report - Larger font for PDF print */
+@media print {
+	.frappe-control[data-fieldname="report_html"] .dt-scrollable,
+	.report-print-area,
+	.print-format,
+	.frappe-control[data-fieldname="report_html"] table {
+		font-size: 14px !important;
+	}
+
+	.frappe-control[data-fieldname="report_html"] table th,
+	.report-print-area table th,
+	.print-format table th {
+		font-size: 14px !important;
+		font-weight: bold !important;
+	}
+
+	.frappe-control[data-fieldname="report_html"] table td,
+	.report-print-area table td,
+	.print-format table td {
+		font-size: 13px !important;
+	}
+}

@@ -16,9 +16,19 @@ class GrainPurchase(Document):
 
 	def before_save(self):
 		"""Calculate all values before saving"""
+		self.check_paid_modification()
 		self.fetch_hamali_rate()  # Refetch rate based on current kg_of_bag
 		self.fetch_bank_details()
 		self.calculate_values()
+
+	def check_paid_modification(self):
+		"""Prevent non-admin users from modifying paid entries"""
+		if not self.is_new() and self.payment_status == "Paid":
+			if "System Manager" not in frappe.get_roles(frappe.session.user):
+				frappe.throw(
+					"Payment is already done. Only Admin (System Manager) can modify paid entries.",
+					frappe.PermissionError
+				)
 
 	def generate_transaction_no(self):
 		"""Auto-generate transaction number"""
@@ -108,6 +118,10 @@ class GrainPurchase(Document):
 		# Amount Calculation
 		auction_rate = flt(self.auction_rate, 2)
 		self.amount = round(auction_rate * self.actual_weight, 2)
+
+		# Rounded Off Amount
+		self.rounded_amount = round(self.amount)
+		self.rounded_off = self.rounded_amount - self.amount
 
 		# Hamali Calculation
 		hamali_rate = flt(self.hamali_rate, 2)

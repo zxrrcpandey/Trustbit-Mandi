@@ -27,6 +27,8 @@
   "actual_weight",
   "auction_rate",
   "amount",
+  "rounded_off",
+  "rounded_amount",
   "section_hamali",
   "hamali_rate",
   "hamali_rate_master_ref",
@@ -181,6 +183,18 @@
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rounded_off",
+   "fieldtype": "Currency",
+   "label": "Rounded Off",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rounded_amount",
+   "fieldtype": "Currency",
+   "label": "Amount (Rounded)",
    "read_only": 1
   },
   {

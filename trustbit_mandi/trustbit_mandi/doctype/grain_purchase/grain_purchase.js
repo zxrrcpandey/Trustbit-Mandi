@@ -194,6 +194,8 @@ function calculate_values(frm) {
     // Weight in Quintal
     let actual_weight = (actual_bags * (kg_per_bag / 100)) + (nos_kg / 100);
     let amount = auction_rate * actual_weight;
+    let rounded_amount = Math.round(amount);
+    let rounded_off = rounded_amount - amount;
     let total_bags_for_hamali = actual_bags + (nos_kg / 100);
     let hamali = 0, net_amount = 0;
 
@@ -207,6 +209,8 @@ function calculate_values(frm) {
 
     frappe.model.set_value(frm.doctype, frm.docname, 'actual_weight', flt(actual_weight, 2));
     frappe.model.set_value(frm.doctype, frm.docname, 'amount', flt(amount, 2));
+    frappe.model.set_value(frm.doctype, frm.docname, 'rounded_off', flt(rounded_off, 2));
+    frappe.model.set_value(frm.doctype, frm.docname, 'rounded_amount', rounded_amount);
     frappe.model.set_value(frm.doctype, frm.docname, 'hamali', hamali);
     frappe.model.set_value(frm.doctype, frm.docname, 'net_amount', net_amount);
 
