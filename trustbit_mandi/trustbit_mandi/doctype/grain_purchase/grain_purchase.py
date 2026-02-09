@@ -17,6 +17,7 @@ class GrainPurchase(Document):
 	def before_save(self):
 		"""Calculate all values before saving"""
 		self.check_paid_modification()
+		self.fetch_tax_rates()
 		self.fetch_hamali_rate()  # Refetch rate based on current kg_of_bag
 		self.fetch_bank_details()
 		self.calculate_values()
@@ -38,9 +39,32 @@ class GrainPurchase(Document):
 			self.transaction_no = f"TXN-{today}-{random_num}"
 
 	def set_default_tax_rates(self):
-		"""Set default tax rates if not set"""
+		"""Fetch tax rates from Mandi Tax Type master"""
+		if not self.mandi_tax_type:
+			self.mandi_tax_type = "Mandi Tax"
+		if not self.nirashrit_tax_type:
+			self.nirashrit_tax_type = "Nirashrit Tax"
+		self.fetch_tax_rates()
+
+	def fetch_tax_rates(self):
+		"""Fetch tax rates from Mandi Tax Type master"""
+		if self.mandi_tax_type:
+			try:
+				rate = frappe.db.get_value("Mandi Tax Type", self.mandi_tax_type, "rate")
+				if rate is not None:
+					self.mandi_tax_rate = flt(rate)
+			except Exception:
+				pass
 		if not self.mandi_tax_rate:
 			self.mandi_tax_rate = 1
+
+		if self.nirashrit_tax_type:
+			try:
+				rate = frappe.db.get_value("Mandi Tax Type", self.nirashrit_tax_type, "rate")
+				if rate is not None:
+					self.nirashrit_tax_rate = flt(rate)
+			except Exception:
+				pass
 		if not self.nirashrit_tax_rate:
 			self.nirashrit_tax_rate = 0.2
 

@@ -37,9 +37,11 @@
   "hamali",
   "net_amount",
   "section_tax",
+  "mandi_tax_type",
   "mandi_tax_rate",
   "mandi_tax",
   "column_break_tax",
+  "nirashrit_tax_type",
   "nirashrit_tax_rate",
   "nirashrit_tax",
   "total_tax",
@@ -244,10 +246,18 @@
    "label": "Tax Calculation"
   },
   {
-   "default": "1",
+   "default": "Mandi Tax",
+   "fieldname": "mandi_tax_type",
+   "fieldtype": "Link",
+   "label": "Mandi Tax Type",
+   "options": "Mandi Tax Type"
+  },
+  {
+   "fetch_from": "mandi_tax_type.rate",
    "fieldname": "mandi_tax_rate",
    "fieldtype": "Percent",
-   "label": "Mandi Tax Rate"
+   "label": "Mandi Tax Rate",
+   "fetch_if_empty": 1
   },
   {
    "fieldname": "mandi_tax",
@@ -260,10 +270,18 @@
    "fieldtype": "Column Break"
   },
   {
-   "default": "0.2",
+   "default": "Nirashrit Tax",
+   "fieldname": "nirashrit_tax_type",
+   "fieldtype": "Link",
+   "label": "Nirashrit Tax Type",
+   "options": "Mandi Tax Type"
+  },
+  {
+   "fetch_from": "nirashrit_tax_type.rate",
    "fieldname": "nirashrit_tax_rate",
    "fieldtype": "Percent",
-   "label": "Nirashrit Tax Rate"
+   "label": "Nirashrit Tax Rate",
+   "fetch_if_empty": 1
   },
   {
    "fieldname": "nirashrit_tax",

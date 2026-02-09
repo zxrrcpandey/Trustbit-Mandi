@@ -81,6 +81,26 @@ frappe.ui.form.on('Grain Purchase', {
         calculate_values(frm);
     },
 
+    mandi_tax_type: function(frm) {
+        if (frm.doc.mandi_tax_type) {
+            frappe.db.get_value('Mandi Tax Type', frm.doc.mandi_tax_type, 'rate', function(r) {
+                if (r && r.rate !== undefined) {
+                    frm.set_value('mandi_tax_rate', r.rate);
+                }
+            });
+        }
+    },
+
+    nirashrit_tax_type: function(frm) {
+        if (frm.doc.nirashrit_tax_type) {
+            frappe.db.get_value('Mandi Tax Type', frm.doc.nirashrit_tax_type, 'rate', function(r) {
+                if (r && r.rate !== undefined) {
+                    frm.set_value('nirashrit_tax_rate', r.rate);
+                }
+            });
+        }
+    },
+
     mandi_tax_rate: function(frm) {
         calculate_taxes(frm);
     },
