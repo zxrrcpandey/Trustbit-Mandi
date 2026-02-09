@@ -227,7 +227,8 @@ def export_neft_rtgs_excel(**filters):
 
 	data = _get_payment_data(filters)
 	if not data:
-		frappe.throw(_("No data found for the selected filters"))
+		frappe.msgprint(_("No data found for the selected filters"))
+		return
 
 	wb = openpyxl.Workbook()
 	ws = wb.active
@@ -301,7 +302,8 @@ def export_dtr_excel(**filters):
 
 	data = _get_payment_data(filters)
 	if not data:
-		frappe.throw(_("No data found for the selected filters"))
+		frappe.msgprint(_("No data found for the selected filters"))
+		return
 
 	wb = openpyxl.Workbook()
 	ws = wb.active
@@ -375,7 +377,8 @@ def export_krishi_upaj_excel(**filters):
 
 	data = _get_payment_data(filters)
 	if not data:
-		frappe.throw(_("No data found for A/S flag: {0}").format(as_flag))
+		frappe.msgprint(_("No data found for A/S flag: {0}").format(as_flag))
+		return
 
 	wb = openpyxl.Workbook()
 	ws = wb.active
