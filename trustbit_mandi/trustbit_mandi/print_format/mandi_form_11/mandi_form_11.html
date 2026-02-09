@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>प्रपत्र ग्यारह 'क' खंड 'क' - Form 11 K</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 5mm;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Arial', 'Noto Sans Devanagari', sans-serif;
+            font-size: 8pt;
+            background: #fff;
+            padding: 10px;
+        }
+        
+        .report-container {
+            border: 3px solid #F4D03F;
+            padding: 10px;
+            background: linear-gradient(135deg, #fff 0%, #FDFEFE 100%);
+        }
+        
+        /* Header Section */
+        .report-header {
+            text-align: center;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: linear-gradient(90deg, #E8F8F5, #D5F5E3, #E8F8F5);
+            border-radius: 5px;
+        }
+        
+        .form-number {
+            font-size: 12pt;
+            font-weight: bold;
+            color: #1E8449;
+        }
+        
+        .office-name {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #2C3E50;
+            margin: 5px 0;
+        }
+        
+        .report-type {
+            font-size: 10pt;
+            color: #7D3C98;
+            font-weight: bold;
+        }
+        
+        /* Company Info */
+        .company-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 15px;
+            background: linear-gradient(90deg, #FCF3CF, #F9E79F, #FCF3CF);
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .company-name {
+            font-weight: bold;
+            color: #1A5276;
+        }
+        
+        .license-info {
+            font-weight: bold;
+            color: #922B21;
+        }
+        
+        .date-range {
+            text-align: center;
+            font-weight: bold;
+            color: #1E8449;
+            margin-bottom: 10px;
+            padding: 5px;
+            background: linear-gradient(90deg, transparent, #D5F5E3, transparent);
+        }
+        
+        .date-highlight {
+            color: #C0392B;
+            font-weight: bold;
+        }
+        
+        /* Note */
+        .note-section {
+            text-align: right;
+            font-size: 7pt;
+            color: #7F8C8D;
+            margin-bottom: 5px;
+        }
+        
+        /* Main Data Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 7pt;
+        }
+        
+        .data-table th,
+        .data-table td {
+            border: 1px solid #2C3E50;
+            padding: 4px 3px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        
+        /* Header Row Colors */
+        .header-row-1 th {
+            background: linear-gradient(180deg, #E8DAEF, #D7BDE2);
+            color: #4A235A;
+            font-weight: bold;
+            font-size: 7pt;
+        }
+        
+        .header-row-2 th {
+            background: linear-gradient(180deg, #D6EAF8, #AED6F1);
+            color: #1A5276;
+            font-size: 6pt;
+        }
+        
+        .header-row-3 th {
+            background: linear-gradient(180deg, #FCF3CF, #F9E79F);
+            color: #7D6608;
+            font-weight: bold;
+            font-size: 7pt;
+        }
+        
+        /* Column Group Colors */
+        .col-serial {
+            background: linear-gradient(180deg, #FADBD8, #F5B7B1) !important;
+        }
+        
+        .col-crop-type {
+            background: linear-gradient(180deg, #D5F5E3, #ABEBC6) !important;
+        }
+        
+        .col-bill-based {
+            background: linear-gradient(180deg, #FCF3CF, #F9E79F) !important;
+        }
+        
+        .col-license-based {
+            background: linear-gradient(180deg, #FADBD8, #F5B7B1) !important;
+        }
+        
+        .col-local-sale {
+            background: linear-gradient(180deg, #D4E6F1, #AED6F1) !important;
+        }
+        
+        .col-mp-outside {
+            background: linear-gradient(180deg, #E8DAEF, #D7BDE2) !important;
+        }
+        
+        .col-mp-inside-total {
+            background: linear-gradient(180deg, #D5F5E3, #ABEBC6) !important;
+        }
+        
+        .col-mp-outside-total {
+            background: linear-gradient(180deg, #FDEBD0, #FAD7A0) !important;
+        }
+        
+        .col-sale-value {
+            background: linear-gradient(180deg, #D4E6F1, #AED6F1) !important;
+        }
+        
+        .col-tax-applicable {
+            background: linear-gradient(180deg, #FCF3CF, #F9E79F) !important;
+        }
+        
+        .col-mandi-tax {
+            background: linear-gradient(180deg, #D5F5E3, #ABEBC6) !important;
+        }
+        
+        /* Data Rows */
+        .data-row td {
+            background: #FDFEFE;
+        }
+        
+        .data-row:nth-child(even) td {
+            background: #F8F9F9;
+        }
+        
+        .data-row td.value-cell {
+            font-weight: bold;
+            color: #1A5276;
+        }
+        
+        /* Total Row */
+        .total-row td {
+            background: linear-gradient(180deg, #AED6F1, #85C1E9) !important;
+            font-weight: bold;
+            color: #1A5276;
+        }
+        
+        /* Page 2 - Tax Summary Section */
+        .page-break {
+            page-break-before: always;
+        }
+        
+        /* Tax Summary Tables */
+        .tax-summary-section {
+            margin-top: 20px;
+            display: flex;
+            gap: 20px;
+        }
+        
+        .tax-box {
+            flex: 1;
+            border: 2px solid #2C3E50;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .tax-box-mandi {
+            border-color: #27AE60;
+        }
+        
+        .tax-box-nirashrit {
+            border-color: #3498DB;
+        }
+        
+        .tax-box-header {
+            padding: 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 10pt;
+        }
+        
+        .tax-box-mandi .tax-box-header {
+            background: linear-gradient(180deg, #D5F5E3, #ABEBC6);
+            color: #1E8449;
+        }
+        
+        .tax-box-nirashrit .tax-box-header {
+            background: linear-gradient(180deg, #D4E6F1, #AED6F1);
+            color: #1A5276;
+        }
+        
+        .tax-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .tax-table th,
+        .tax-table td {
+            border: 1px solid #BDC3C7;
+            padding: 6px 8px;
+            font-size: 9pt;
+        }
+        
+        .tax-table th {
+            background: #F8F9F9;
+            text-align: left;
+            width: 40%;
+        }
+        
+        .tax-box-mandi .tax-table td {
+            background: linear-gradient(180deg, #E8F8F5, #D1F2EB);
+            text-align: right;
+            font-weight: bold;
+            color: #1E8449;
+        }
+        
+        .tax-box-nirashrit .tax-table td {
+            background: linear-gradient(180deg, #EBF5FB, #D6EAF8);
+            text-align: right;
+            font-weight: bold;
+            color: #1A5276;
+        }
+        
+        .tax-table .highlight-row td {
+            background: linear-gradient(180deg, #F9E79F, #F4D03F) !important;
+            color: #7D6608 !important;
+        }
+        
+        /* Signature Section */
+        .signature-section {
+            margin-top: 30px;
+            text-align: right;
+            padding: 15px;
+        }
+        
+        .signature-box {
+            display: inline-block;
+            text-align: center;
+            padding: 10px 20px;
+            background: linear-gradient(180deg, #FCF3CF, #F9E79F);
+            border: 1px solid #D4AC0D;
+            border-radius: 5px;
+        }
+        
+        .signature-line {
+            border-bottom: 1px solid #2C3E50;
+            width: 200px;
+            height: 40px;
+            margin-bottom: 5px;
+        }
+        
+        .signature-text {
+            font-size: 9pt;
+            color: #7F8C8D;
+        }
+        
+        /* Print Timestamp */
+        .print-timestamp {
+            margin-top: 20px;
+            font-size: 8pt;
+            color: #7F8C8D;
+        }
+        
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <!-- Header -->
+        <div class="report-header">
+            <div class="form-number">प्रपत्र ग्यारह 'क' खंड 'क'</div>
+            <div class="office-name">कार्यालय कृषि उपज मंडी समिति बैतूल जिला बैतूल (म.प्र.)</div>
+            <div class="report-type">पाक्षिक विवरण पत्रक - व्यापारी</div>
+        </div>
+        
+        <!-- Company Info -->
+        <div class="company-info">
+            <div class="company-name">
+                व्यापारी अनुज्ञप्तिधारी / फर्म का नाम - <strong>KANTISHIVA ROLLER FLOUR MILL PVT. LTD.</strong>
+            </div>
+            <div class="license-info">
+                अनुज्ञप्ति क्रमांक - <strong>55</strong>
+            </div>
+        </div>
+        
+        <!-- Date Range -->
+        <div class="date-range">
+            दिनांक <span class="date-highlight">01-12-2025</span> से <span class="date-highlight">15-12-2025</span> तक का विवरण
+        </div>
+        
+        <!-- Note -->
+        <div class="note-section">(मात्रा क्विंटल में मूल्य रुपये में)</div>
+        
+        <!-- Main Data Table - Page 1 (Columns 1-18) -->
+        <table class="data-table">
+            <thead>
+                <!-- Header Row 1 - Main Categories -->
+                <tr class="header-row-1">
+                    <th rowspan="3" class="col-serial">क्रमांक</th>
+                    <th rowspan="3" class="col-crop-type">कृषि उपज का<br>नाम</th>
+                    <th colspan="2" class="col-bill-based">विक्रय प्रमाणक के आधार पर<br>क्रय</th>
+                    <th colspan="4">वाणिज्य संव्यवहार के अंतर्गत क्रय</th>
+                    <th colspan="2" class="col-mp-outside">म.प्र. के बाहर से क्रय</th>
+                    <th colspan="2" class="col-mp-inside-total">पक्ष में क्रय किया सदा कुल<br>संख्या</th>
+                    <th colspan="2" class="col-mp-outside-total">पक्ष में प्राप्ति से संख्या</th>
+                    <th colspan="2" class="col-sale-value">शेष (उपलब्ध संख्या)</th>
+                    <th colspan="2" class="col-mandi-tax">वजन/मूल्य जिस पर मंडी शुल्क</th>
+                </tr>
+                <tr class="header-row-2">
+                    <th colspan="2"></th>
+                    <th colspan="2" class="col-license-based">अनुज्ञापत्रों के आधार पर</th>
+                    <th colspan="2" class="col-local-sale">बिलों के आधार पर स्थानीय<br>क्रय</th>
+                    <th colspan="2"></th>
+                    <th colspan="2"></th>
+                    <th colspan="2"></th>
+                    <th colspan="2"></th>
+                    <th colspan="2"></th>
+                </tr>
+                <tr class="header-row-3">
+                    <th>वजन</th>
+                    <th>मूल्य</th>
+                    <th>वजन</th>
+                    <th>मूल्य</th>
+                    <th>वजन</th>
+                    <th>मूल्य</th>
+                    <th>वजन</th>
+                    <th>मूल्य</th>
+                    <th>वजन(3+5+7+9)</th>
+                    <th>मूल्य(4+6+8+10)</th>
+                    <th>वजन</th>
+                    <th>मूल्य</th>
+                    <th>वजन(11+13)</th>
+                    <th>मूल्य(12+14)</th>
+                    <th>वजन(3+9)</th>
+                    <th>मूल्य(4+10)</th>
+                </tr>
+                <tr class="header-row-3">
+                    <th>1</th>
+                    <th>2</th>
+                    <th>3</th>
+                    <th>4</th>
+                    <th>5</th>
+                    <th>6</th>
+                    <th>7</th>
+                    <th>8</th>
+                    <th>9</th>
+                    <th>10</th>
+                    <th>11</th>
+                    <th>12</th>
+                    <th>13</th>
+                    <th>14</th>
+                    <th>15</th>
+                    <th>16</th>
+                    <th>17</th>
+                    <th>18</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="data-row">
+                    <td class="col-serial">1</td>
+                    <td class="col-crop-type value-cell">गेहूं</td>
+                    <td class="col-bill-based value-cell">12593.78</td>
+                    <td class="col-bill-based value-cell">31448759</td>
+                    <td class="col-license-based">480.00</td>
+                    <td class="col-license-based">1224000</td>
+                    <td class="col-local-sale"></td>
+                    <td class="col-local-sale"></td>
+                    <td class="col-mp-outside"></td>
+                    <td class="col-mp-outside"></td>
+                    <td class="col-mp-inside-total value-cell">13073.78</td>
+                    <td class="col-mp-inside-total value-cell">32672759</td>
+                    <td class="col-mp-outside-total value-cell">11402.87</td>
+                    <td class="col-mp-outside-total value-cell">29443470</td>
+                    <td class="col-sale-value value-cell">24476.65</td>
+                    <td class="col-sale-value value-cell">62116229</td>
+                    <td class="col-mandi-tax value-cell">12593.78</td>
+                    <td class="col-mandi-tax value-cell">31448759</td>
+                </tr>
+                <tr class="data-row">
+                    <td class="col-serial">2</td>
+                    <td class="col-crop-type">चना</td>
+                    <td class="col-bill-based"></td>
+                    <td class="col-bill-based"></td>
+                    <td class="col-license-based"></td>
+                    <td class="col-license-based"></td>
+                    <td class="col-local-sale"></td>
+                    <td class="col-local-sale"></td>
+                    <td class="col-mp-outside"></td>
+                    <td class="col-mp-outside"></td>
+                    <td class="col-mp-inside-total"></td>
+                    <td class="col-mp-inside-total"></td>
+                    <td class="col-mp-outside-total"></td>
+                    <td class="col-mp-outside-total"></td>
+                    <td class="col-sale-value"></td>
+                    <td class="col-sale-value"></td>
+                    <td class="col-mandi-tax"></td>
+                    <td class="col-mandi-tax"></td>
+                </tr>
+                <tr class="data-row">
+                    <td class="col-serial">3</td>
+                    <td class="col-crop-type">सोयाबीन</td>
+                    <td class="col-bill-based"></td>
+                    <td class="col-bill-based"></td>
+                    <td class="col-license-based"></td>
+                    <td class="col-license-based"></td>
+                    <td class="col-local-sale"></td>
+                    <td class="col-local-sale"></td>
+                    <td class="col-mp-outside"></td>
+                    <td class="col-mp-outside"></td>
+                    <td class="col-mp-inside-total"></td>
+                    <td class="col-mp-inside-total"></td>
+                    <td class="col-mp-outside-total"></td>
+                    <td class="col-mp-outside-total"></td>
+                    <td class="col-sale-value"></td>
+                    <td class="col-sale-value"></td>
+                    <td class="col-mandi-tax"></td>
+                    <td class="col-mandi-tax"></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <!-- Tax Summary Section -->
+        <div class="tax-summary-section">
+            <!-- Mandi Tax Box -->
+            <div class="tax-box tax-box-mandi">
+                <div class="tax-box-header">मंडी शुल्क विवरण</div>
+                <table class="tax-table">
+                    <tr>
+                        <th>पूर्व शेष जमा</th>
+                        <td>12355</td>
+                    </tr>
+                    <tr>
+                        <th>जमा</th>
+                        <td>200000 (427/040 दिनांक 01/12/2025)</td>
+                    </tr>
+                    <tr>
+                        <th>जमा</th>
+                        <td>200000 (428/034 दिनांक 11/12/2025)</td>
+                    </tr>
+                    <tr>
+                        <th>कुल जमा राशि</th>
+                        <td>412355</td>
+                    </tr>
+                    <tr class="highlight-row">
+                        <th>मंडी शुल्क</th>
+                        <td>314488</td>
+                    </tr>
+                    <tr>
+                        <th>शेष जमा राशि</th>
+                        <td>97867</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <!-- Nirashrit Tax Box -->
+            <div class="tax-box tax-box-nirashrit">
+                <div class="tax-box-header">निराश्रित शुल्क विवरण</div>
+                <table class="tax-table">
+                    <tr>
+                        <th>पूर्व शेष जमा</th>
+                        <td>12739</td>
+                    </tr>
+                    <tr>
+                        <th>जमा</th>
+                        <td>40000 (031/036 दिनांक 01/12/2025)</td>
+                    </tr>
+                    <tr>
+                        <th>जमा</th>
+                        <td>40000 (031/079 दिनांक 11/12/2025)</td>
+                    </tr>
+                    <tr>
+                        <th>कुल जमा राशि</th>
+                        <td>92739</td>
+                    </tr>
+                    <tr class="highlight-row">
+                        <th>निराश्रित शुल्क</th>
+                        <td>62897</td>
+                    </tr>
+                    <tr>
+                        <th>शेष जमा राशि</th>
+                        <td>29842</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Signature Section -->
+        <div class="signature-section">
+            <div class="signature-box">
+                <div class="signature-line"></div>
+                <div class="signature-text">प्रस्तुतकर्ता व्यापारी / फर्म की मुहर<br>एवं हस्ताक्षर दिनांक सहित</div>
+            </div>
+        </div>
+        
+        <!-- Timestamp -->
+        <div class="print-timestamp">
+            22-12-2025 14:36:03
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<style>
+    @page {
+        size: A4 landscape;
+        margin: 8mm;
+    }
+    
+    body {
+        font-family: Arial, sans-serif;
+        font-size: 10pt;
+        color: #000;
+    }
+    
+    .header {
+        text-align: center;
+        border-bottom: 2px double #000;
+        padding-bottom: 8px;
+        margin-bottom: 10px;
+    }
+    
+    .company-name {
+        font-size: 16pt;
+        font-weight: bold;
+    }
+    
+    .company-hindi {
+        font-size: 12pt;
+    }
+    
+    .report-title {
+        font-size: 14pt;
+        font-weight: bold;
+        margin-top: 5px;
+    }
+    
+    .date-range {
+        font-size: 10pt;
+        margin-top: 3px;
+    }
+    
+    table.report-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        font-size: 9pt;
+    }
+    
+    table.report-table th {
+        background-color: #e5e5e5;
+        border: 1px solid #000;
+        padding: 5px;
+        text-align: center;
+        font-weight: bold;
+    }
+    
+    table.report-table td {
+        border: 1px solid #555;
+        padding: 4px;
+    }
+    
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .text-bold { font-weight: bold; }
+    
+    .footer {
+        margin-top: 10px;
+        font-size: 8pt;
+        color: #666;
+    }
+</style>
+
+<div class="header">
+    <div class="company-name">KANTISHIVA ROLLER FLOUR MILL PVT. LTD.</div>
+    <div class="company-hindi">कांतिशिवा रोलर फ्लोर मिल प्रा. लि.</div>
+    <div class="report-title">MANDI PURCHASE REPORT</div>
+    <div class="date-range">
+        Purchase Date: <strong>{{ doc.contract_date }}</strong>
+    </div>
+</div>
+
+<table class="report-table">
+    <thead>
+        <tr>
+            <th style="width:40px;">S.No.</th>
+            <th style="width:150px;">Farmer Name & Address</th>
+            <th style="width:90px;">Phone</th>
+            <th style="width:80px;">Contract Date</th>
+            <th style="width:100px;">Contract No.</th>
+            <th style="width:60px;">Exp. Bag</th>
+            <th style="width:80px;">Payment Date</th>
+            <th style="width:120px;">Transaction No.</th>
+            <th style="width:60px;">Actual Bag</th>
+            <th style="width:70px;">Actual Wt.</th>
+            <th style="width:60px;">Rate</th>
+            <th style="width:90px;">Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="text-center">1</td>
+            <td>
+                <strong>{{ doc.farmer_name | upper }}</strong><br>
+                <small>{{ doc.address or '' }}</small>
+            </td>
+            <td class="text-center">{{ doc.phone_number or '' }}</td>
+            <td class="text-center">{{ doc.contract_date }}</td>
+            <td class="text-center">{{ doc.contract_number or '' }}</td>
+            <td class="text-center">{{ doc.expected_bag or 0 }}</td>
+            <td class="text-center">{{ doc.pay_date or doc.contract_date }}</td>
+            <td class="text-center">{{ doc.transaction_no or '' }}</td>
+            <td class="text-center">{{ "%.2f"|format(doc.actual_bag or 0) }}</td>
+            <td class="text-right">{{ "%.2f"|format(doc.actual_weight or 0) }}</td>
+            <td class="text-right">{{ doc.auction_rate or 0 }}</td>
+            <td class="text-right text-bold">{{ frappe.format_value(doc.amount, {'fieldtype': 'Currency'}) }}</td>
+        </tr>
+        <tr class="text-bold" style="background-color: #f0f0f0;">
+            <td colspan="5" class="text-right">TOTAL:</td>
+            <td class="text-center">{{ doc.expected_bag or 0 }}</td>
+            <td colspan="2"></td>
+            <td class="text-center">{{ "%.2f"|format(doc.actual_bag or 0) }}</td>
+            <td class="text-right">{{ "%.2f"|format(doc.actual_weight or 0) }}</td>
+            <td></td>
+            <td class="text-right">{{ frappe.format_value(doc.amount, {'fieldtype': 'Currency'}) }}</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="footer">
+    <span>{{ frappe.utils.now() }}</span>
+    <span style="float: right;">Page 1 of 1</span>
+</div>

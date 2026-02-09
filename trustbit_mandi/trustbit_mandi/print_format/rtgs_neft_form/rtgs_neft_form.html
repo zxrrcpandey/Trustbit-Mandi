@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            font-size: 12pt;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h2 {
+            margin: 5px 0;
+            font-size: 18pt;
+        }
+        .header p {
+            margin: 2px 0;
+            font-size: 10pt;
+        }
+        .section {
+            margin: 20px 0;
+        }
+        .section-title {
+            font-weight: bold;
+            text-decoration: underline;
+            margin-bottom: 10px;
+            font-size: 13pt;
+        }
+        .field-row {
+            margin: 8px 0;
+            display: flex;
+        }
+        .field-label {
+            width: 180px;
+            display: inline-block;
+        }
+        .field-value {
+            display: inline-block;
+            font-weight: bold;
+            flex: 1;
+        }
+        .dotted-line {
+            border-bottom: 1px dotted #000;
+            min-width: 300px;
+            display: inline-block;
+        }
+        .conditions {
+            margin-top: 30px;
+            font-size: 9pt;
+        }
+        .conditions ol {
+            margin: 5px 0;
+        }
+        .signature-section {
+            margin-top: 40px;
+        }
+        .signature-box {
+            display: inline-block;
+            width: 45%;
+            vertical-align: top;
+        }
+        .bank-charges {
+            font-size: 9pt;
+            margin: 5px 0;
+        }
+        hr {
+            margin: 30px 0;
+            border: none;
+            border-top: 2px solid #000;
+        }
+        .counter-foil {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 2px dashed #000;
+        }
+    </style>
+</head>
+<body>
+    <!-- Main Form -->
+    <div class="header">
+        <h2 style="font-family: 'Noto Sans Devanagari', Arial, sans-serif;">सेन्ट्रल बैंक ऑफ़ इंडिया</h2>
+        <h2>RTGS NEFT APPLICATION FORM</h2>
+        <p>(To be filled in by the applicant in block letters)</p>
+        <p style="text-align: right; margin-top: 10px;">Date: {{ frappe.format_date(doc.pay_date, "dd-MM-yyyy") }}</p>
+    </div>
+
+    <!-- Applicant Details (Remitter) -->
+    <div class="section">
+        <div class="section-title">Details of the Applicant (Remitter)</div>
+        
+        <div class="field-row">
+            <span class="field-label">1. Name of the Applicant</span>
+            <span class="field-value">{{ doc.company or "KANTISHIVA ROLLER FLOUR MILL PVT. LTD." }}</span>
+        </div>
+        
+        <div class="field-row">
+            <span class="field-label">2. PAN No.</span>
+            <span class="field-value">AABCK3806 C &nbsp;&nbsp;&nbsp; Mo. No. 9425402290</span>
+        </div>
+        
+        <div class="field-row">
+            <span class="field-label">3. Account No.</span>
+            <span class="field-value">1293416596</span>
+        </div>
+        
+        <div class="field-row">
+            <span class="field-label">4. Cheq No.</span>
+            <span class="dotted-line">&nbsp;</span>
+            <span class="field-label" style="width: 80px;">Date</span>
+            <span class="dotted-line" style="min-width: 150px;">&nbsp;</span>
+            <span class="field-label" style="width: 80px;">Amount</span>
+            <span class="dotted-line" style="min-width: 150px;">&nbsp;</span>
+        </div>
+    </div>
+
+    <!-- Beneficiary Details -->
+    <div class="section">
+        <div class="section-title">Details Of Benificiary</div>
+        
+        <div class="field-row">
+            <span class="field-label">1. Name Of the beneficiary</span>
+            <span class="field-value">{{ doc.farmer_name or "" }}</span>
+        </div>
+        
+        <div class="field-row">
+            <span class="field-label">2. Bank's Name</span>
+            <span class="field-value">{{ doc.bank_name or "" }}</span>
+        </div>
+        
+        <div class="field-row">
+            <span class="field-label">3. Branch Name</span>
+            <span class="field-value">{{ doc.branch or "" }}</span>
+        </div>
+        
+        <div class="field-row">
+            <span class="field-label">4. Account No,</span>
+            <span class="field-value">{{ doc.account_number or "" }}</span>
+        </div>
+        
+        <div class="field-row">
+            <span class="field-label">5. IFSC Code</span>
+            <span class="field-value">{{ doc.ifsc_code or "" }}</span>
+        </div>
+        
+        <div class="field-row">
+            <span class="field-label">6. Amount to be Remitted</span>
+            <span class="field-value">Rs {{ frappe.format_value(doc.net_amount, {"fieldtype": "Currency"}) }}</span>
+        </div>
+        
+        <div class="field-row">
+            <span class="field-label">7. Bank Charges per RTGS</span>
+            <span class="field-value">Rs <span class="dotted-line" style="min-width: 200px;">&nbsp;</span></span>
+        </div>
+        
+        <div class="bank-charges">
+            Upto Rs. 1.00 lac to Rs. 5/- &lt; Rs 1.00 lac to 5 lac-Rs. 25/- &gt; Rs. 5.00 lac &amp; above -Rs. 50/-
+        </div>
+        
+        <div class="field-row">
+            <span class="field-label">Total</span>
+            <span class="field-value">Rs ONLY <span class="dotted-line" style="min-width: 250px;">&nbsp;</span></span>
+        </div>
+    </div>
+
+    <!-- Signature Section -->
+    <div class="signature-section">
+        <div class="section-title">Signature of Remitter</div>
+        <p style="font-size: 9pt;">Remit the amount as per above details by debiting my/our account</p>
+        <p style="font-size: 9pt;">For the amount of remittance plus your charges</p>
+        <p style="text-align: right; margin-top: 60px;"><strong>(Authorised Signatory)</strong></p>
+        
+        <div class="field-row" style="margin-top: 20px;">
+            <span>Rs {{ frappe.format_value(doc.net_amount, {"fieldtype": "Currency"}) }} debited to customers account and amount remitted on <span class="dotted-line" style="min-width: 200px;">&nbsp;</span></span>
+        </div>
+        
+        <div class="field-row">
+            <span class="field-label">UTR No</span>
+            <span class="field-value">CBINIH</span>
+        </div>
+        
+        <p style="margin-top: 30px;">Signature of the Bank Official</p>
+    </div>
+
+    <!-- Conditions -->
+    <div class="conditions">
+        <div class="section-title">CONDITIONS OF TRANSFER.</div>
+        <ol>
+            <li>Remitting Branch shall not be liable for any loss or damage arising or resulting from delay in transmission delivery or no delivery of Electronic massage or any mistake, omission or error in transmission or delivery thereof or in deciphering the message for any cause whatsoever or from its misinterpretation received or the destination bank or any act beyond our control</li>
+            <li>All payment instruction should be checked carefully by the remitter.</li>
+            <li>Message next working day</li>
+        </ol>
+    </div>
+
+    <!-- Counter Foil -->
+    <div class="counter-foil">
+        <div style="text-align: center; font-weight: bold; margin-bottom: 20px;">COUNTER FOIL</div>
+        
+        <div class="field-row">
+            <span>Received from</span>
+            <span class="field-value" style="margin: 0 10px;">{{ doc.company or "KANTISHIVA ROLLER FLOUR MILL PVT. LTD." }}</span>
+            <span>application for RTGS/NEFT CBI A/C</span>
+        </div>
+        
+        <div class="field-row">
+            <span>For Rs {{ frappe.format_value(doc.net_amount, {"fieldtype": "Currency"}) }}</span>
+            <span style="margin-left: 20px;">on <span class="dotted-line" style="min-width: 200px;">&nbsp;</span></span>
+        </div>
+        
+        <div class="field-row" style="margin-top: 20px;">
+            <span class="field-label">UTR No</span>
+            <span class="field-value">CBINIH</span>
+            <span style="margin-left: 100px;">Signature</span>
+            <span class="dotted-line" style="min-width: 200px; margin-left: 20px;">&nbsp;</span>
+        </div>
+        
+        <div class="field-row" style="margin-top: 20px;">
+            <span>Pay amount <strong>{{ doc.farmer_name or "" }}</strong></span>
+        </div>
+    </div>
+</body>
+</html>
