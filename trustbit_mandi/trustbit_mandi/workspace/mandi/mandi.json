@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"shortcuts_section\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Shortcuts</b></span>\",\"col\":12}},{\"id\":\"shortcut_grain_purchase\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Grain Purchase\",\"col\":3}},{\"id\":\"shortcut_tax_payment\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Tax Payment Record\",\"col\":3}},{\"id\":\"shortcut_pps\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"PPS Entry\",\"col\":3}},{\"id\":\"shortcut_bank_master\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi Bank Master\",\"col\":3}},{\"id\":\"reports_section\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Reports</b></span>\",\"col\":12}},{\"id\":\"shortcut_all_in_one\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi All In One Report\",\"col\":3}},{\"id\":\"shortcut_payment_report\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi Payment Report\",\"col\":3}},{\"id\":\"shortcut_purchase_report\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi Purchase Report\",\"col\":3}},{\"id\":\"shortcut_tax_report\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi Tax Report\",\"col\":3}},{\"id\":\"masters_section\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Masters</b></span>\",\"col\":12}},{\"id\":\"shortcut_hamali\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Hamali Rate Master\",\"col\":4}},{\"id\":\"shortcut_bank\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi Bank\",\"col\":4}},{\"id\":\"shortcut_tax_type\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi Tax Type\",\"col\":4}}]",
+ "content": "[{\"id\":\"shortcuts_section\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Shortcuts</b></span>\",\"col\":12}},{\"id\":\"shortcut_grain_purchase\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Grain Purchase\",\"col\":3}},{\"id\":\"shortcut_tax_payment\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Tax Payment Record\",\"col\":3}},{\"id\":\"shortcut_pps\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"PPS Entry\",\"col\":3}},{\"id\":\"shortcut_bank_master\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi Bank Master\",\"col\":3}},{\"id\":\"soda_section\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Soda (Deal)</b></span>\",\"col\":12}},{\"id\":\"shortcut_soda\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Soda\",\"col\":3}},{\"id\":\"shortcut_soda_delivery\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Soda Delivery\",\"col\":3}},{\"id\":\"shortcut_soda_price_list\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Soda Price List\",\"col\":3}},{\"id\":\"soda_reports_section\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Soda Reports</b></span>\",\"col\":12}},{\"id\":\"shortcut_soda_ledger\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Soda Ledger\",\"col\":3}},{\"id\":\"shortcut_soda_price_list_ledger\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Soda Price List Ledger\",\"col\":3}},{\"id\":\"soda_masters_section\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Soda Masters</b></span>\",\"col\":12}},{\"id\":\"shortcut_soda_price_list_area\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Soda Price List Area\",\"col\":3}},{\"id\":\"shortcut_soda_pack_size\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Soda Pack Size\",\"col\":3}},{\"id\":\"reports_section\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Reports</b></span>\",\"col\":12}},{\"id\":\"shortcut_all_in_one\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi All In One Report\",\"col\":3}},{\"id\":\"shortcut_payment_report\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi Payment Report\",\"col\":3}},{\"id\":\"shortcut_purchase_report\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi Purchase Report\",\"col\":3}},{\"id\":\"shortcut_tax_report\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi Tax Report\",\"col\":3}},{\"id\":\"masters_section\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Masters</b></span>\",\"col\":12}},{\"id\":\"shortcut_hamali\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Hamali Rate Master\",\"col\":4}},{\"id\":\"shortcut_bank\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi Bank\",\"col\":4}},{\"id\":\"shortcut_tax_type\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi Tax Type\",\"col\":4}}]",
  "creation": "2026-02-05 10:00:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
@@ -39,6 +39,100 @@
    "link_count": 0,
    "link_to": "PPS Entry",
    "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Soda (Deal)",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Soda",
+   "link_count": 0,
+   "link_to": "Soda",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Soda Delivery",
+   "link_count": 0,
+   "link_to": "Soda Delivery",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Soda Price List",
+   "link_count": 0,
+   "link_to": "Soda Price List",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Soda Masters",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Soda Price List Area",
+   "link_count": 0,
+   "link_to": "Soda Price List Area",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Soda Pack Size",
+   "link_count": 0,
+   "link_to": "Soda Pack Size",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Soda Reports",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Soda Ledger",
+   "link_count": 0,
+   "link_to": "Soda Ledger",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Soda Price List Ledger",
+   "link_count": 0,
+   "link_to": "Soda Price List Ledger",
+   "link_type": "Report",
    "onboard": 0,
    "type": "Link"
   },
@@ -139,7 +233,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-02-05 10:00:00.000000",
+ "modified": "2026-02-11 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Trustbit Mandi",
  "name": "Mandi",
@@ -178,6 +272,53 @@
    "label": "Mandi Bank Master",
    "link_to": "Mandi Bank Master",
    "type": "DocType"
+  },
+  {
+   "color": "Blue",
+   "doc_view": "List",
+   "label": "Soda",
+   "link_to": "Soda",
+   "type": "DocType"
+  },
+  {
+   "color": "Green",
+   "doc_view": "List",
+   "label": "Soda Delivery",
+   "link_to": "Soda Delivery",
+   "type": "DocType"
+  },
+  {
+   "color": "Orange",
+   "doc_view": "List",
+   "label": "Soda Price List",
+   "link_to": "Soda Price List",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Soda Price List Area",
+   "link_to": "Soda Price List Area",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Soda Pack Size",
+   "link_to": "Soda Pack Size",
+   "type": "DocType"
+  },
+  {
+   "color": "Cyan",
+   "label": "Soda Ledger",
+   "link_to": "Soda Ledger",
+   "type": "Report"
+  },
+  {
+   "color": "Cyan",
+   "label": "Soda Price List Ledger",
+   "link_to": "Soda Price List Ledger",
+   "type": "Report"
   },
   {
    "color": "Grey",
