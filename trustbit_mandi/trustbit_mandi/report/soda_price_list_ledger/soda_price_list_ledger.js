@@ -28,24 +28,37 @@ frappe.query_reports["Soda Price List Ledger"] = {
 		},
 		{
 			"fieldname": "from_date",
-			"label": __("From Date"),
+			"label": __("Last Day"),
 			"fieldtype": "Date",
-			"default": frappe.datetime.add_months(frappe.datetime.get_today(), -1)
+			"default": frappe.datetime.add_days(frappe.datetime.get_today(), -1),
+			"reqd": 1
 		},
 		{
 			"fieldname": "to_date",
-			"label": __("To Date"),
+			"label": __("Current Date"),
 			"fieldtype": "Date",
-			"default": frappe.datetime.get_today()
+			"default": frappe.datetime.get_today(),
+			"reqd": 1
 		}
-	]
+	],
+	"formatter": function(value, row, column, data, default_formatter) {
+		value = default_formatter(value, row, column, data);
+		if (column.fieldname === "change" && data) {
+			if (data.change > 0) {
+				value = "<span style='color:green;font-weight:bold'>" + value + " ▲</span>";
+			} else if (data.change < 0) {
+				value = "<span style='color:red;font-weight:bold'>" + value + " ▼</span>";
+			}
+		}
+		return value;
+	}
 };
 
 function print_report_pdf(report, title) {
 	let filters = report.get_values();
 	let filter_text = [];
-	if (filters.from_date) filter_text.push("From: " + filters.from_date);
-	if (filters.to_date) filter_text.push("To: " + filters.to_date);
+	if (filters.from_date) filter_text.push("Last Day: " + filters.from_date);
+	if (filters.to_date) filter_text.push("Current Date: " + filters.to_date);
 	Object.keys(filters).forEach(function(k) {
 		if (k !== "from_date" && k !== "to_date" && filters[k]) {
 			filter_text.push(k.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()) + ": " + filters[k]);
@@ -73,7 +86,7 @@ function print_report_pdf(report, title) {
 	w.document.write('th, td { border: 1px solid #333; padding: 4px 6px; font-size: 10px; }');
 	w.document.write('th { background: #e5e5e5; font-weight: bold; }');
 	w.document.write('td { text-align: right; }');
-	w.document.write('td:first-child, td:nth-child(2), td:nth-child(3) { text-align: left; }');
+	w.document.write('td:first-child, td:nth-child(2), td:nth-child(3), td:nth-child(4) { text-align: left; }');
 	w.document.write('.footer { margin-top: 10px; font-size: 9px; color: #888; text-align: right; }');
 	w.document.write('</style></head><body>');
 	w.document.write('<div class="header">');
