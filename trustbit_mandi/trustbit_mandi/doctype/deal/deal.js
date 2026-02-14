@@ -36,6 +36,9 @@ frappe.ui.form.on('Deal', {
 			}
 		}
 
+		// Render delivery status table
+		render_delivery_status(frm);
+
 		// Cancel button
 		if (!frm.is_new() && frm.doc.status !== 'Cancelled'
 			&& frm.doc.status !== 'Delivered') {
@@ -136,6 +139,66 @@ function recalculate_deal_totals(frm) {
 	});
 	frm.set_value('total_qty', total_qty);
 	frm.set_value('total_amount', total_amount);
+}
+
+
+function render_delivery_status(frm) {
+	let wrapper = frm.fields_dict.delivery_status_html.$wrapper;
+	wrapper.empty();
+
+	if (frm.is_new() || !frm.doc.items || frm.doc.items.length === 0) return;
+
+	let has_delivery = (frm.doc.items || []).some(function(row) {
+		return flt(row.delivered_qty) > 0;
+	});
+
+	if (!has_delivery) {
+		wrapper.html('<div class="text-muted text-center" style="padding: 15px;">No deliveries yet</div>');
+		return;
+	}
+
+	let html = '<table class="table table-bordered table-sm" style="margin-bottom: 0;">';
+	html += '<thead style="background: #f7f7f7;"><tr>';
+	html += '<th>#</th><th>Item</th><th>Pack Size</th>';
+	html += '<th class="text-right">Booked</th>';
+	html += '<th class="text-right">Delivered</th>';
+	html += '<th class="text-right">Pending</th>';
+	html += '<th>Status</th>';
+	html += '</tr></thead><tbody>';
+
+	let total_booked = 0, total_delivered = 0, total_pending = 0;
+
+	(frm.doc.items || []).forEach(function(row, i) {
+		let delivered = flt(row.delivered_qty);
+		let pending = flt(row.pending_qty);
+		let status = row.item_status || 'Open';
+		let indicator = status === 'Delivered' ? 'green'
+			: status === 'Partially Delivered' ? 'orange' : 'blue';
+
+		total_booked += flt(row.qty);
+		total_delivered += delivered;
+		total_pending += pending;
+
+		html += '<tr>';
+		html += '<td>' + (i + 1) + '</td>';
+		html += '<td>' + (row.item_name || row.item) + '</td>';
+		html += '<td>' + (row.pack_size || '') + '</td>';
+		html += '<td class="text-right">' + flt(row.qty) + '</td>';
+		html += '<td class="text-right">' + delivered + '</td>';
+		html += '<td class="text-right">' + pending + '</td>';
+		html += '<td><span class="indicator-pill ' + indicator + '">' + status + '</span></td>';
+		html += '</tr>';
+	});
+
+	html += '</tbody><tfoot style="background: #f7f7f7; font-weight: bold;"><tr>';
+	html += '<td colspan="3">Total</td>';
+	html += '<td class="text-right">' + total_booked + '</td>';
+	html += '<td class="text-right">' + total_delivered + '</td>';
+	html += '<td class="text-right">' + total_pending + '</td>';
+	html += '<td></td>';
+	html += '</tr></tfoot></table>';
+
+	wrapper.html(html);
 }
 
 

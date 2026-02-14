@@ -19,6 +19,8 @@
   "total_qty",
   "column_break_totals",
   "total_amount",
+  "section_delivery_status",
+  "delivery_status_html",
   "section_remarks",
   "remarks"
  ],
@@ -115,6 +117,17 @@
    "in_list_view": 1,
    "label": "Total Amount",
    "read_only": 1
+  },
+  {
+   "depends_on": "eval:!doc.__islocal",
+   "fieldname": "section_delivery_status",
+   "fieldtype": "Section Break",
+   "label": "Delivery Status"
+  },
+  {
+   "fieldname": "delivery_status_html",
+   "fieldtype": "HTML",
+   "label": "Delivery Status"
   },
   {
    "fieldname": "section_remarks",
