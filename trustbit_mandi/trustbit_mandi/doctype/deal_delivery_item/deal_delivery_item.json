@@ -6,6 +6,7 @@
  "engine": "InnoDB",
  "field_order": [
   "soda",
+  "deal_item",
   "customer",
   "item",
   "pack_size",
@@ -23,9 +24,15 @@
    "fieldname": "soda",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Soda",
+   "label": "Deal",
    "options": "Deal",
    "reqd": 1
+  },
+  {
+   "fieldname": "deal_item",
+   "fieldtype": "Data",
+   "label": "Deal Item Ref",
+   "read_only": 1
   },
   {
    "fetch_from": "soda.customer_name",
@@ -36,15 +43,14 @@
    "read_only": 1
   },
   {
-   "fetch_from": "soda.item",
    "fieldname": "item",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Item",
    "options": "Item",
    "read_only": 1
   },
   {
-   "fetch_from": "soda.pack_size",
    "fieldname": "pack_size",
    "fieldtype": "Link",
    "label": "Pack Size",
@@ -59,7 +65,7 @@
    "fieldname": "soda_qty",
    "fieldtype": "Float",
    "in_list_view": 1,
-   "label": "Soda Qty",
+   "label": "Deal Qty",
    "read_only": 1
   },
   {
@@ -105,7 +111,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-02-14 06:22:31.438258",
+ "modified": "2026-02-14 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "Trustbit Mandi",
  "name": "Deal Delivery Item",

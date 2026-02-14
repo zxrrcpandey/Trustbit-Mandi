@@ -12,25 +12,13 @@
   "column_break_deal",
   "status",
   "sales_type",
-  "section_item",
   "price_list_area",
-  "item",
-  "item_name",
-  "column_break_item",
-  "pack_size",
-  "pack_weight_kg",
-  "qty",
-  "section_rate",
-  "rate",
-  "base_price_50kg",
-  "price_per_kg",
-  "column_break_rate",
-  "amount",
-  "price_list_ref",
-  "section_delivery",
-  "delivered_qty",
-  "column_break_delivery",
-  "pending_qty",
+  "section_items",
+  "items",
+  "section_totals",
+  "total_qty",
+  "column_break_totals",
+  "total_amount",
   "section_remarks",
   "remarks"
  ],
@@ -86,11 +74,6 @@
    "reqd": 1
   },
   {
-   "fieldname": "section_item",
-   "fieldtype": "Section Break",
-   "label": "Item & Pricing"
-  },
-  {
    "fieldname": "price_list_area",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -99,110 +82,38 @@
    "reqd": 1
   },
   {
-   "fieldname": "item",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Item",
-   "options": "Item",
-   "reqd": 1
-  },
-  {
-   "fetch_from": "item.item_name",
-   "fieldname": "item_name",
-   "fieldtype": "Data",
-   "label": "Item Name",
-   "read_only": 1
-  },
-  {
-   "fieldname": "column_break_item",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "pack_size",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Pack Size",
-   "options": "Deal Pack Size",
-   "reqd": 1
-  },
-  {
-   "fetch_from": "pack_size.weight_kg",
-   "fieldname": "pack_weight_kg",
-   "fieldtype": "Float",
-   "label": "Pack Weight (KG)",
-   "read_only": 1
-  },
-  {
-   "fieldname": "qty",
-   "fieldtype": "Float",
-   "in_list_view": 1,
-   "label": "Quantity (Packs)",
-   "reqd": 1
-  },
-  {
-   "fieldname": "section_rate",
+   "fieldname": "section_items",
    "fieldtype": "Section Break",
-   "label": "Rate & Amount"
+   "label": "Items"
   },
   {
-   "fieldname": "rate",
-   "fieldtype": "Currency",
-   "in_list_view": 1,
-   "label": "Rate (per Pack)",
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Deal Items",
+   "options": "Deal Item",
    "reqd": 1
   },
   {
-   "fieldname": "base_price_50kg",
-   "fieldtype": "Currency",
-   "label": "Base Price (50 KG)",
-   "read_only": 1
-  },
-  {
-   "fieldname": "price_per_kg",
-   "fieldtype": "Currency",
-   "label": "Price Per KG",
-   "read_only": 1
-  },
-  {
-   "fieldname": "column_break_rate",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "amount",
-   "fieldtype": "Currency",
-   "in_list_view": 1,
-   "label": "Amount",
-   "read_only": 1
-  },
-  {
-   "fieldname": "price_list_ref",
-   "fieldtype": "Link",
-   "label": "Price List Ref",
-   "options": "Deal Price List",
-   "read_only": 1
-  },
-  {
-   "fieldname": "section_delivery",
+   "fieldname": "section_totals",
    "fieldtype": "Section Break",
-   "label": "Delivery Tracking"
+   "label": "Totals"
   },
   {
-   "default": "0",
-   "fieldname": "delivered_qty",
+   "fieldname": "total_qty",
    "fieldtype": "Float",
    "in_list_view": 1,
-   "label": "Delivered Qty",
+   "label": "Total Qty (Packs)",
    "read_only": 1
   },
   {
-   "fieldname": "column_break_delivery",
+   "fieldname": "column_break_totals",
    "fieldtype": "Column Break"
   },
   {
-   "default": "0",
-   "fieldname": "pending_qty",
-   "fieldtype": "Float",
-   "label": "Pending Qty",
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Total Amount",
    "read_only": 1
   },
   {
@@ -218,7 +129,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-02-14 10:00:00.000000",
+ "modified": "2026-02-14 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "Trustbit Mandi",
  "name": "Deal",
@@ -250,7 +161,7 @@
    "write": 1
   }
  ],
- "search_fields": "customer,customer_name,item,price_list_area",
+ "search_fields": "customer,customer_name,price_list_area",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

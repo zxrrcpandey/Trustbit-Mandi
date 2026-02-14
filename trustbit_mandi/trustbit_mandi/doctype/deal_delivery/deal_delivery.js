@@ -3,46 +3,20 @@
 
 frappe.ui.form.on('Deal Delivery', {
 	refresh: function(frm) {
-		frm.set_query('item', function() {
-			return { filters: { 'disabled': 0 } };
-		});
-		frm.set_query('pack_size', function() {
-			return { filters: { 'is_active': 1 } };
-		});
-
 		// Auto-Allocate FIFO button
-		if (frm.doc.customer && frm.doc.item && frm.doc.pack_size
-			&& flt(frm.doc.total_delivery_qty) > 0) {
+		if (frm.doc.customer) {
 			frm.add_custom_button(__('Auto-Allocate FIFO'), function() {
-				allocate_fifo(frm);
+				show_fifo_dialog(frm);
 			}).addClass('btn-primary');
-		}
 
-		// Fetch Pending Deals button
-		if (frm.doc.customer && frm.doc.item && frm.doc.pack_size) {
 			frm.add_custom_button(__('Fetch Pending Deals'), function() {
-				fetch_pending_deals(frm);
+				show_pending_deals_dialog(frm);
 			});
 		}
 	},
 
 	customer: function(frm) {
 		clear_items_if_changed(frm);
-	},
-
-	item: function(frm) {
-		clear_items_if_changed(frm);
-	},
-
-	pack_size: function(frm) {
-		clear_items_if_changed(frm);
-	},
-
-	total_delivery_qty: function(frm) {
-		if (frm.doc.customer && frm.doc.item && frm.doc.pack_size
-			&& flt(frm.doc.total_delivery_qty) > 0) {
-			allocate_fifo(frm);
-		}
 	}
 });
 
@@ -56,86 +30,142 @@ frappe.ui.form.on('Deal Delivery Item', {
 });
 
 
-function allocate_fifo(frm) {
-	frappe.call({
-		method: 'trustbit_mandi.trustbit_mandi.doctype.deal_delivery.deal_delivery.allocate_fifo',
-		args: {
-			customer: frm.doc.customer,
-			item: frm.doc.item,
-			pack_size: frm.doc.pack_size,
-			total_qty: frm.doc.total_delivery_qty,
-			exclude_delivery: frm.doc.name || null
-		},
-		callback: function(r) {
-			if (r.message && r.message.length > 0) {
-				frm.clear_table('items');
-
-				r.message.forEach(function(alloc) {
-					let row = frm.add_child('items');
-					row.soda = alloc.soda;
-					row.customer = alloc.customer;
-					row.item = alloc.item;
-					row.pack_size = alloc.pack_size;
-					row.soda_qty = alloc.soda_qty;
-					row.already_delivered = alloc.already_delivered;
-					row.pending_qty = alloc.pending_qty;
-					row.deliver_qty = alloc.deliver_qty;
-					row.rate = alloc.rate;
-					row.amount = alloc.amount;
-				});
-
-				frm.refresh_field('items');
-				recalculate_totals(frm);
-
-				frappe.show_alert({
-					message: __('FIFO allocation complete: {0} Deals allocated', [r.message.length]),
-					indicator: 'green'
-				}, 3);
-			} else {
-				frappe.show_alert({
-					message: __('No pending Deals found for this Customer + Item + Pack Size'),
-					indicator: 'orange'
-				}, 4);
+function show_fifo_dialog(frm) {
+	let d = new frappe.ui.Dialog({
+		title: __('FIFO Allocation'),
+		fields: [
+			{
+				fieldname: 'item',
+				fieldtype: 'Link',
+				label: __('Item (optional)'),
+				options: 'Item',
+				description: 'Leave blank to allocate across all items'
+			},
+			{
+				fieldname: 'pack_size',
+				fieldtype: 'Link',
+				label: __('Pack Size (optional)'),
+				options: 'Deal Pack Size'
+			},
+			{
+				fieldname: 'total_qty',
+				fieldtype: 'Float',
+				label: __('Total Delivery Qty (Packs)'),
+				reqd: 1
 			}
+		],
+		primary_action_label: __('Allocate'),
+		primary_action: function(values) {
+			frappe.call({
+				method: 'trustbit_mandi.trustbit_mandi.doctype.deal_delivery.deal_delivery.allocate_fifo',
+				args: {
+					customer: frm.doc.customer,
+					total_qty: values.total_qty,
+					item: values.item || null,
+					pack_size: values.pack_size || null,
+					exclude_delivery: frm.doc.name || null
+				},
+				callback: function(r) {
+					if (r.message && r.message.length > 0) {
+						frm.clear_table('items');
+
+						r.message.forEach(function(alloc) {
+							let row = frm.add_child('items');
+							row.soda = alloc.soda;
+							row.deal_item = alloc.deal_item;
+							row.customer = alloc.customer;
+							row.item = alloc.item;
+							row.pack_size = alloc.pack_size;
+							row.soda_qty = alloc.soda_qty;
+							row.already_delivered = alloc.already_delivered;
+							row.pending_qty = alloc.pending_qty;
+							row.deliver_qty = alloc.deliver_qty;
+							row.rate = alloc.rate;
+							row.amount = alloc.amount;
+						});
+
+						frm.refresh_field('items');
+						recalculate_totals(frm);
+
+						frappe.show_alert({
+							message: __('FIFO allocation complete: {0} rows allocated', [r.message.length]),
+							indicator: 'green'
+						}, 3);
+					} else {
+						frappe.show_alert({
+							message: __('No pending Deal Items found'),
+							indicator: 'orange'
+						}, 4);
+					}
+					d.hide();
+				}
+			});
 		}
 	});
+	d.show();
 }
 
 
-function fetch_pending_deals(frm) {
-	frappe.call({
-		method: 'trustbit_mandi.trustbit_mandi.doctype.deal_delivery.deal_delivery.get_pending_deals',
-		args: {
-			customer: frm.doc.customer,
-			item: frm.doc.item,
-			pack_size: frm.doc.pack_size,
-			exclude_delivery: frm.doc.name || null
-		},
-		callback: function(r) {
-			if (r.message && r.message.length > 0) {
-				let msg = '<table class="table table-bordered table-sm">';
-				msg += '<tr><th>Deal</th><th>Date</th><th>Qty</th><th>Delivered</th><th>Pending</th><th>Rate</th></tr>';
-				r.message.forEach(function(s) {
-					msg += '<tr>';
-					msg += '<td>' + s.name + '</td>';
-					msg += '<td>' + s.soda_date + '</td>';
-					msg += '<td>' + s.qty + '</td>';
-					msg += '<td>' + s.already_delivered + '</td>';
-					msg += '<td>' + s.pending_qty + '</td>';
-					msg += '<td>' + format_number(s.rate) + '</td>';
-					msg += '</tr>';
-				});
-				msg += '</table>';
-				frappe.msgprint({
-					title: __('Pending Deals (FIFO Order)'),
-					message: msg,
-					indicator: 'blue'
-				});
-			} else {
-				frappe.msgprint(__('No pending Deals found.'));
+function show_pending_deals_dialog(frm) {
+	let d = new frappe.ui.Dialog({
+		title: __('View Pending Deals'),
+		fields: [
+			{
+				fieldname: 'item',
+				fieldtype: 'Link',
+				label: __('Item (optional)'),
+				options: 'Item'
+			},
+			{
+				fieldname: 'pack_size',
+				fieldtype: 'Link',
+				label: __('Pack Size (optional)'),
+				options: 'Deal Pack Size'
 			}
+		],
+		primary_action_label: __('Fetch'),
+		primary_action: function(values) {
+			frappe.call({
+				method: 'trustbit_mandi.trustbit_mandi.doctype.deal_delivery.deal_delivery.get_pending_deal_items',
+				args: {
+					customer: frm.doc.customer,
+					item: values.item || null,
+					pack_size: values.pack_size || null,
+					exclude_delivery: frm.doc.name || null
+				},
+				callback: function(r) {
+					d.hide();
+					if (r.message && r.message.length > 0) {
+						let msg = '<table class="table table-bordered table-sm">';
+						msg += '<tr><th>Deal</th><th>Date</th><th>Item</th>';
+						msg += '<th>Pack</th><th>Qty</th><th>Delivered</th>';
+						msg += '<th>Pending</th><th>Rate</th></tr>';
+						r.message.forEach(function(s) {
+							msg += '<tr>';
+							msg += '<td>' + s.deal_name + '</td>';
+							msg += '<td>' + s.soda_date + '</td>';
+							msg += '<td>' + (s.item_name || s.item) + '</td>';
+							msg += '<td>' + s.pack_size + '</td>';
+							msg += '<td>' + s.qty + '</td>';
+							msg += '<td>' + s.already_delivered + '</td>';
+							msg += '<td>' + s.pending_qty + '</td>';
+							msg += '<td>' + format_number(s.rate) + '</td>';
+							msg += '</tr>';
+						});
+						msg += '</table>';
+						frappe.msgprint({
+							title: __('Pending Deal Items (FIFO Order)'),
+							message: msg,
+							indicator: 'blue'
+						});
+					} else {
+						frappe.msgprint(__('No pending Deal Items found.'));
+					}
+				}
+			});
 		}
 	});
+	d.show();
 }
 
 

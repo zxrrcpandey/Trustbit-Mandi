@@ -28,7 +28,8 @@ def get_columns():
 		{"fieldname": "amount", "label": _("Amount"), "fieldtype": "Currency", "width": 100},
 		{"fieldname": "delivered_qty", "label": _("Delivered"), "fieldtype": "Float", "width": 80},
 		{"fieldname": "pending_qty", "label": _("Pending"), "fieldtype": "Float", "width": 80},
-		{"fieldname": "status", "label": _("Status"), "fieldtype": "Data", "width": 110},
+		{"fieldname": "item_status", "label": _("Item Status"), "fieldtype": "Data", "width": 100},
+		{"fieldname": "status", "label": _("Deal Status"), "fieldtype": "Data", "width": 100},
 		{"fieldname": "last_delivery_date", "label": _("Last Delivery"), "fieldtype": "Date", "width": 100},
 	]
 
@@ -50,7 +51,7 @@ def get_data(filters):
 		values.append(filters["customer"])
 
 	if filters.get("item"):
-		conditions.append("s.item = %s")
+		conditions.append("di.item = %s")
 		values.append(filters["item"])
 
 	if filters.get("price_list_area"):
@@ -68,16 +69,18 @@ def get_data(filters):
 	sql = """
 		SELECT
 			s.name, s.soda_date, s.customer, s.customer_name,
-			s.item, s.item_name, s.pack_size, s.sales_type,
-			s.price_list_area, s.qty, s.rate, s.amount,
-			s.delivered_qty, s.pending_qty, s.status,
+			di.item, di.item_name, di.pack_size, s.sales_type,
+			s.price_list_area, di.qty, di.rate, di.amount,
+			di.delivered_qty, di.pending_qty, di.item_status,
+			s.status,
 			(SELECT MAX(sd.delivery_date)
 			 FROM `tabDeal Delivery Item` sdi
 			 INNER JOIN `tabDeal Delivery` sd ON sd.name = sdi.parent
-			 WHERE sdi.soda = s.name) as last_delivery_date
+			 WHERE sdi.soda = s.name AND sdi.deal_item = di.name) as last_delivery_date
 		FROM `tabDeal` s
+		INNER JOIN `tabDeal Item` di ON di.parent = s.name
 		WHERE {conditions}
-		ORDER BY s.soda_date ASC, s.creation ASC
+		ORDER BY s.soda_date ASC, s.creation ASC, di.idx ASC
 	""".format(conditions=" AND ".join(conditions))
 
 	data = frappe.db.sql(sql, values, as_dict=True)

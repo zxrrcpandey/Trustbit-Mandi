@@ -10,9 +10,6 @@
   "customer",
   "customer_name",
   "column_break_delivery",
-  "item",
-  "item_name",
-  "pack_size",
   "section_qty",
   "total_delivery_qty",
   "column_break_qty",
@@ -57,29 +54,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "item",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Item",
-   "options": "Item",
-   "reqd": 1
-  },
-  {
-   "fetch_from": "item.item_name",
-   "fieldname": "item_name",
-   "fieldtype": "Data",
-   "label": "Item Name",
-   "read_only": 1
-  },
-  {
-   "fieldname": "pack_size",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Pack Size",
-   "options": "Deal Pack Size",
-   "reqd": 1
-  },
-  {
    "fieldname": "section_qty",
    "fieldtype": "Section Break",
    "label": "Quantity"
@@ -89,7 +63,7 @@
    "fieldtype": "Float",
    "in_list_view": 1,
    "label": "Total Delivery Qty (Packs)",
-   "reqd": 1
+   "read_only": 1
   },
   {
    "fieldname": "column_break_qty",
@@ -126,7 +100,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-02-14 10:00:00.000000",
+ "modified": "2026-02-14 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "Trustbit Mandi",
  "name": "Deal Delivery",
@@ -158,7 +132,7 @@
    "write": 1
   }
  ],
- "search_fields": "customer,customer_name,item",
+ "search_fields": "customer,customer_name",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
