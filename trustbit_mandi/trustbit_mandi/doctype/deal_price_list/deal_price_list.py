@@ -18,6 +18,42 @@ class DealPriceList(Document):
 
 
 @frappe.whitelist()
+def get_all_prices_for_area(price_list_area):
+	"""Get all active item prices for an area + all active pack sizes."""
+	# Get latest active price per item for this area using subquery
+	prices = frappe.db.sql("""
+		SELECT dpl.name as price_list_name, dpl.item, dpl.item_group,
+			dpl.base_price_50kg, dpl.price_per_kg,
+			i.item_name, i.item_group as item_group_link
+		FROM `tabDeal Price List` dpl
+		INNER JOIN `tabItem` i ON i.name = dpl.item
+		WHERE dpl.price_list_area = %s
+		  AND dpl.is_active = 1
+		  AND dpl.effective_datetime = (
+			SELECT MAX(dpl2.effective_datetime)
+			FROM `tabDeal Price List` dpl2
+			WHERE dpl2.price_list_area = dpl.price_list_area
+			  AND dpl2.item = dpl.item
+			  AND dpl2.is_active = 1
+			  AND dpl2.effective_datetime <= NOW()
+		  )
+		ORDER BY i.item_name
+	""", (price_list_area,), as_dict=True)
+
+	pack_sizes = frappe.db.sql("""
+		SELECT name as pack_size, weight_kg
+		FROM `tabDeal Pack Size`
+		WHERE is_active = 1
+		ORDER BY weight_kg DESC
+	""", as_dict=True)
+
+	return {
+		"prices": prices,
+		"pack_sizes": pack_sizes
+	}
+
+
+@frappe.whitelist()
 def get_latest_price(price_list_area, item, as_of_datetime=None):
 	"""Get the latest active price for an area+item combination."""
 	if not as_of_datetime:
