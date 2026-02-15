@@ -114,12 +114,12 @@ function show_add_items_dialog(frm) {
 				frappe.msgprint(__('No active prices found for area: {0}', [frm.doc.price_list_area]));
 				return;
 			}
-			build_add_items_dialog(frm, r.message.prices, r.message.pack_sizes);
+			build_add_items_dialog(frm, r.message.prices, r.message.pack_sizes, r.message.bag_cost_map || {});
 		}
 	});
 }
 
-function build_add_items_dialog(frm, prices, pack_sizes) {
+function build_add_items_dialog(frm, prices, pack_sizes, bag_cost_map) {
 	// Build pack size options HTML
 	let pack_options = '<option value="">-- Select --</option>';
 	pack_sizes.forEach(function(ps) {
@@ -167,7 +167,7 @@ function build_add_items_dialog(frm, prices, pack_sizes) {
 		],
 		primary_action_label: __('Add to Deal'),
 		primary_action: function() {
-			add_selected_to_deal(frm, rows, pack_weight_map, d);
+			add_selected_to_deal(frm, rows, pack_weight_map, bag_cost_map, d);
 		}
 	});
 
@@ -204,6 +204,7 @@ function build_add_items_dialog(frm, prices, pack_sizes) {
 		html += '<th style="text-align:right;padding:8px 6px;font-size:11px;">&#8377;/KG</th>';
 		html += '<th style="padding:8px 6px;font-size:11px;">PACK SIZE</th>';
 		html += '<th style="text-align:right;padding:8px 6px;font-size:11px;">WT</th>';
+		html += '<th style="text-align:right;padding:8px 6px;font-size:11px;">BAG COST</th>';
 		html += '<th style="text-align:right;padding:8px 6px;font-size:11px;width:60px;">QTY</th>';
 		html += '<th style="text-align:right;padding:8px 6px;font-size:11px;">RATE/PACK</th>';
 		html += '<th style="text-align:right;padding:8px 6px;font-size:11px;">AMOUNT</th>';
@@ -228,7 +229,8 @@ function build_add_items_dialog(frm, prices, pack_sizes) {
 			visible_count++;
 
 			let price_per_kg = flt(row.base_price_50kg) / 50;
-			let rate = row.weight_kg > 0 ? price_per_kg * row.weight_kg : 0;
+			let bag_cost = row.pack_size ? flt(bag_cost_map[row.item + ':' + row.pack_size]) : 0;
+			let rate = row.weight_kg > 0 ? (price_per_kg * row.weight_kg) + bag_cost : 0;
 			let amount = rate * flt(row.qty);
 			let price_changed = Math.abs(flt(row.base_price_50kg) - flt(row.original_price)) > 0.01;
 
@@ -301,6 +303,10 @@ function build_add_items_dialog(frm, prices, pack_sizes) {
 			html += '<td style="text-align:right;vertical-align:middle;padding:6px;color:#718096;font-size:11.5px;">'
 				+ (row.weight_kg > 0 ? row.weight_kg : '--') + '</td>';
 
+			// Bag Cost
+			html += '<td style="text-align:right;vertical-align:middle;padding:6px;color:#718096;font-size:12px;">'
+				+ (bag_cost > 0 ? format_number(bag_cost) : '--') + '</td>';
+
 			// Qty
 			html += '<td style="text-align:right;vertical-align:middle;padding:6px;">'
 				+ '<input type="number" class="qty-input" data-id="' + row.id + '" '
@@ -337,7 +343,7 @@ function build_add_items_dialog(frm, prices, pack_sizes) {
 		html += '</tbody></table></div>';
 
 		// Footer summary
-		let summary = get_selection_summary(rows, pack_weight_map);
+		let summary = get_selection_summary(rows, pack_weight_map, bag_cost_map);
 		html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:8px 0;">';
 		html += '<div style="display:flex;gap:24px;font-size:13px;color:#4a5568;">';
 		html += '<div>Items: <strong>' + summary.items + '</strong> (' + summary.lines + ' lines)</div>';
@@ -348,16 +354,16 @@ function build_add_items_dialog(frm, prices, pack_sizes) {
 		wrapper.html(html);
 
 		// Bind events
-		bind_dialog_events(wrapper, rows, pack_weight_map, pack_sizes, render_table, d);
+		bind_dialog_events(wrapper, rows, pack_weight_map, pack_sizes, bag_cost_map, render_table, d);
 	}
 
 	render_table('');
 	d.show();
-	d.$wrapper.find('.modal-dialog').css('max-width', '1040px');
+	d.$wrapper.find('.modal-dialog').css('max-width', '1120px');
 }
 
 
-function bind_dialog_events(wrapper, rows, pack_weight_map, pack_sizes, render_table, dialog) {
+function bind_dialog_events(wrapper, rows, pack_weight_map, pack_sizes, bag_cost_map, render_table, dialog) {
 	// Search
 	wrapper.find('.add-items-search').off('input').on('input', function() {
 		let val = $(this).val();
@@ -373,7 +379,7 @@ function bind_dialog_events(wrapper, rows, pack_weight_map, pack_sizes, render_t
 		let row = rows.find(function(r) { return r.id === id; });
 		if (row) {
 			row.checked = $(this).is(':checked');
-			update_footer(wrapper, rows, pack_weight_map);
+			update_footer(wrapper, rows, pack_weight_map, bag_cost_map);
 		}
 	});
 
@@ -483,7 +489,7 @@ function bind_dialog_events(wrapper, rows, pack_weight_map, pack_sizes, render_t
 }
 
 
-function get_selection_summary(rows, pack_weight_map) {
+function get_selection_summary(rows, pack_weight_map, bag_cost_map) {
 	let items_set = {};
 	let lines = 0;
 	let total_qty = 0;
@@ -499,7 +505,8 @@ function get_selection_summary(rows, pack_weight_map) {
 			lines++;
 			total_qty += flt(row.qty);
 			let price_per_kg = flt(row.base_price_50kg) / 50;
-			let rate = price_per_kg * flt(row.weight_kg);
+			let bc = row.pack_size ? flt((bag_cost_map || {})[row.item + ':' + row.pack_size]) : 0;
+			let rate = (price_per_kg * flt(row.weight_kg)) + bc;
 			total_amount += rate * flt(row.qty);
 		}
 	});
@@ -513,9 +520,9 @@ function get_selection_summary(rows, pack_weight_map) {
 }
 
 
-function update_footer(wrapper, rows, pack_weight_map) {
+function update_footer(wrapper, rows, pack_weight_map, bag_cost_map) {
 	// Quick footer update without full re-render
-	let summary = get_selection_summary(rows, pack_weight_map);
+	let summary = get_selection_summary(rows, pack_weight_map, bag_cost_map);
 	let footer_html = '<div>Items: <strong>' + summary.items + '</strong> (' + summary.lines + ' lines)</div>';
 	footer_html += '<div>Total Qty: <strong>' + summary.total_qty + '</strong></div>';
 	footer_html += '<div>Total Amount: <strong>&#8377; ' + format_number(summary.total_amount) + '</strong></div>';
@@ -523,7 +530,7 @@ function update_footer(wrapper, rows, pack_weight_map) {
 }
 
 
-function add_selected_to_deal(frm, rows, pack_weight_map, dialog) {
+function add_selected_to_deal(frm, rows, pack_weight_map, bag_cost_map, dialog) {
 	let items_to_add = [];
 
 	rows.forEach(function(row) {
@@ -536,7 +543,8 @@ function add_selected_to_deal(frm, rows, pack_weight_map, dialog) {
 		if (!row.pack_size || !row.qty || row.qty <= 0) return;
 
 		let price_per_kg = flt(row.base_price_50kg) / 50;
-		let rate = price_per_kg * flt(row.weight_kg);
+		let bc = row.pack_size ? flt(bag_cost_map[row.item + ':' + row.pack_size]) : 0;
+		let rate = (price_per_kg * flt(row.weight_kg)) + bc;
 		let amount = rate * flt(row.qty);
 
 		items_to_add.push({
@@ -545,6 +553,7 @@ function add_selected_to_deal(frm, rows, pack_weight_map, dialog) {
 			pack_size: row.pack_size,
 			pack_weight_kg: row.weight_kg,
 			qty: row.qty,
+			bag_cost: bc,
 			rate: rate,
 			amount: amount,
 			base_price_50kg: row.base_price_50kg,
@@ -566,6 +575,7 @@ function add_selected_to_deal(frm, rows, pack_weight_map, dialog) {
 		child.pack_size = item.pack_size;
 		child.pack_weight_kg = item.pack_weight_kg;
 		child.qty = item.qty;
+		child.bag_cost = item.bag_cost;
 		child.rate = item.rate;
 		child.amount = item.amount;
 		child.base_price_50kg = item.base_price_50kg;
@@ -606,6 +616,7 @@ function fetch_item_rate(frm, row) {
 			if (r.message) {
 				frappe.model.set_value(row.doctype, row.name, {
 					'rate': r.message.rate,
+					'bag_cost': r.message.bag_cost || 0,
 					'base_price_50kg': r.message.base_price_50kg,
 					'price_per_kg': r.message.price_per_kg,
 					'pack_weight_kg': r.message.pack_weight_kg,

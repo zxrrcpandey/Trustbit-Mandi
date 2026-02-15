@@ -11,6 +11,7 @@
   "pack_weight_kg",
   "column_break_item",
   "qty",
+  "bag_cost",
   "rate",
   "amount",
   "section_pricing",
@@ -67,10 +68,18 @@
    "reqd": 1
   },
   {
+   "default": "0",
+   "fieldname": "bag_cost",
+   "fieldtype": "Currency",
+   "label": "Bag Cost (per Pack)",
+   "read_only": 1
+  },
+  {
    "fieldname": "rate",
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Rate (per Pack)",
+   "description": "Includes bag cost",
    "reqd": 1
   },
   {

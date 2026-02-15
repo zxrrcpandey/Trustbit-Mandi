@@ -47,9 +47,21 @@ def get_all_prices_for_area(price_list_area):
 		ORDER BY weight_kg DESC
 	""", as_dict=True)
 
+	# Get bag costs: item + pack_size -> bag_cost
+	bag_costs = frappe.db.sql("""
+		SELECT item, pack_size, bag_cost
+		FROM `tabPackage Bag Master`
+		WHERE is_active = 1
+	""", as_dict=True)
+
+	bag_cost_map = {}
+	for bc in bag_costs:
+		bag_cost_map[bc.item + ":" + bc.pack_size] = flt(bc.bag_cost)
+
 	return {
 		"prices": prices,
-		"pack_sizes": pack_sizes
+		"pack_sizes": pack_sizes,
+		"bag_cost_map": bag_cost_map
 	}
 
 
@@ -88,13 +100,19 @@ def get_rate_for_pack_size(price_list_area, item, pack_size, as_of_datetime=None
 	if not weight_kg:
 		return None
 
-	rate = flt(latest.get("price_per_kg")) * flt(weight_kg)
+	base_rate = flt(latest.get("price_per_kg")) * flt(weight_kg)
+
+	bag_cost = flt(frappe.db.get_value("Package Bag Master",
+		{"item": item, "pack_size": pack_size, "is_active": 1}, "bag_cost"))
+
+	rate = base_rate + bag_cost
 
 	return {
 		"rate": rate,
 		"base_price_50kg": latest.get("base_price_50kg"),
 		"price_per_kg": latest.get("price_per_kg"),
 		"pack_weight_kg": flt(weight_kg),
+		"bag_cost": bag_cost,
 		"price_list_name": latest.get("name"),
 		"effective_datetime": str(latest.get("effective_datetime"))
 	}
