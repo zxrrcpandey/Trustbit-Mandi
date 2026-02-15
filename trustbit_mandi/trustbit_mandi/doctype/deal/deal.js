@@ -13,10 +13,13 @@ frappe.ui.form.on('Deal', {
 			return { filters: { 'is_active': 1 } };
 		});
 
-		// Add Items button (when area is set and deal is not closed)
-		if (frm.doc.price_list_area && frm.doc.status !== 'Cancelled'
-			&& frm.doc.status !== 'Delivered') {
+		// Add Items button (always show unless deal is closed, checks area on click)
+		if (frm.doc.status !== 'Cancelled' && frm.doc.status !== 'Delivered') {
 			frm.add_custom_button(__('Add Items'), function() {
+				if (!frm.doc.price_list_area) {
+					frappe.msgprint(__('Please select a Price List Area first.'));
+					return;
+				}
 				show_add_items_dialog(frm);
 			}).addClass('btn-primary-dark');
 		}
