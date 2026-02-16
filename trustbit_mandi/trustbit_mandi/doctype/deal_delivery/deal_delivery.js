@@ -62,7 +62,8 @@ function render_pending_summary(frm) {
 			}
 
 			let rows = r.message;
-			let total_pending = 0;
+			let total_deal_qty = 0, total_delivered = 0, total_pending = 0;
+			let total_deal_quintal = 0, total_delivered_quintal = 0, total_pending_quintal = 0;
 			let total_amount = 0;
 
 			let html = '<div style="max-height:300px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:6px;">';
@@ -81,8 +82,17 @@ function render_pending_summary(frm) {
 			html += '</tr></thead><tbody>';
 
 			rows.forEach(function(s, i) {
+				let deal_qty = flt(s.qty);
+				let delivered = flt(s.already_delivered);
 				let pending = flt(s.pending_qty);
+				let wt = flt(s.pack_weight_kg);
+
+				total_deal_qty += deal_qty;
+				total_delivered += delivered;
 				total_pending += pending;
+				total_deal_quintal += (deal_qty * wt) / 100;
+				total_delivered_quintal += (delivered * wt) / 100;
+				total_pending_quintal += (pending * wt) / 100;
 				total_amount += pending * flt(s.rate);
 
 				html += '<tr>';
@@ -91,8 +101,8 @@ function render_pending_summary(frm) {
 				html += '<td style="padding:5px 8px;color:#718096;">' + frappe.datetime.str_to_user(s.soda_date) + '</td>';
 				html += '<td style="padding:5px 8px;font-weight:500;">' + (s.item_name || s.item) + '</td>';
 				html += '<td style="padding:5px 8px;">' + s.pack_size + '</td>';
-				html += '<td style="text-align:right;padding:5px 8px;">' + flt(s.qty) + '</td>';
-				html += '<td style="text-align:right;padding:5px 8px;color:#718096;">' + flt(s.already_delivered) + '</td>';
+				html += '<td style="text-align:right;padding:5px 8px;">' + deal_qty + '</td>';
+				html += '<td style="text-align:right;padding:5px 8px;color:#718096;">' + delivered + '</td>';
 				html += '<td style="text-align:right;padding:5px 8px;font-weight:600;color:' + (pending > 0 ? '#e53e3e' : '#38a169') + ';">' + pending + '</td>';
 				html += '<td style="text-align:right;padding:5px 8px;">' + format_number(s.rate) + '</td>';
 				html += '</tr>';
@@ -101,9 +111,18 @@ function render_pending_summary(frm) {
 			html += '</tbody>';
 			html += '<tfoot style="background:#f7fafc;font-weight:bold;">';
 			html += '<tr>';
-			html += '<td colspan="7" style="padding:6px 8px;">Total</td>';
+			html += '<td colspan="5" style="padding:6px 8px;">Total (Packs)</td>';
+			html += '<td style="text-align:right;padding:6px 8px;">' + total_deal_qty + '</td>';
+			html += '<td style="text-align:right;padding:6px 8px;">' + total_delivered + '</td>';
 			html += '<td style="text-align:right;padding:6px 8px;color:#e53e3e;">' + total_pending + '</td>';
 			html += '<td style="text-align:right;padding:6px 8px;">&#8377; ' + format_number(total_amount) + '</td>';
+			html += '</tr>';
+			html += '<tr style="background:#edf2f7;">';
+			html += '<td colspan="5" style="padding:6px 8px;">Total (Quintal)</td>';
+			html += '<td style="text-align:right;padding:6px 8px;">' + total_deal_quintal.toFixed(2) + '</td>';
+			html += '<td style="text-align:right;padding:6px 8px;">' + total_delivered_quintal.toFixed(2) + '</td>';
+			html += '<td style="text-align:right;padding:6px 8px;color:#e53e3e;">' + total_pending_quintal.toFixed(2) + '</td>';
+			html += '<td></td>';
 			html += '</tr></tfoot>';
 			html += '</table></div>';
 
@@ -149,6 +168,7 @@ function build_get_items_dialog(frm, pending_items) {
 			item: p.item,
 			item_name: p.item_name,
 			pack_size: p.pack_size,
+			pack_weight_kg: flt(p.pack_weight_kg),
 			qty: flt(p.qty),
 			already_delivered: flt(p.already_delivered),
 			pending_qty: flt(p.pending_qty),
@@ -271,7 +291,8 @@ function build_get_items_dialog(frm, pending_items) {
 		html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:8px 0;">';
 		html += '<div style="display:flex;gap:24px;font-size:13px;color:#4a5568;">';
 		html += '<div>Selected: <strong>' + summary.selected + '</strong> of ' + rows.length + '</div>';
-		html += '<div>Total Deliver Qty: <strong>' + summary.total_qty + '</strong></div>';
+		html += '<div>Total Deliver Qty: <strong>' + summary.total_qty + '</strong> packs</div>';
+		html += '<div>Total Quintal: <strong>' + summary.total_quintal.toFixed(2) + '</strong></div>';
 		html += '<div>Total Amount: <strong>&#8377; ' + format_number(summary.total_amount) + '</strong></div>';
 		html += '</div></div>';
 
@@ -332,12 +353,14 @@ function bind_get_items_events(wrapper, rows, render_table) {
 function get_dialog_summary(rows) {
 	let selected = 0;
 	let total_qty = 0;
+	let total_quintal = 0;
 	let total_amount = 0;
 
 	rows.forEach(function(row) {
 		if (row.checked && row.deliver_qty > 0) {
 			selected++;
 			total_qty += flt(row.deliver_qty);
+			total_quintal += (flt(row.deliver_qty) * flt(row.pack_weight_kg)) / 100;
 			total_amount += flt(row.deliver_qty) * flt(row.rate);
 		}
 	});
@@ -345,6 +368,7 @@ function get_dialog_summary(rows) {
 	return {
 		selected: selected,
 		total_qty: total_qty,
+		total_quintal: total_quintal,
 		total_amount: total_amount
 	};
 }
@@ -362,6 +386,7 @@ function add_selected_to_delivery(frm, rows, dialog) {
 			customer: row.customer_name,
 			item: row.item,
 			pack_size: row.pack_size,
+			pack_weight_kg: row.pack_weight_kg,
 			soda_qty: row.qty,
 			already_delivered: row.already_delivered,
 			pending_qty: row.pending_qty,
@@ -386,6 +411,7 @@ function add_selected_to_delivery(frm, rows, dialog) {
 		child.customer = item.customer;
 		child.item = item.item;
 		child.pack_size = item.pack_size;
+		child.pack_weight_kg = item.pack_weight_kg;
 		child.soda_qty = item.soda_qty;
 		child.already_delivered = item.already_delivered;
 		child.pending_qty = item.pending_qty;
@@ -419,12 +445,14 @@ function clear_items_if_changed(frm) {
 
 
 function recalculate_totals(frm) {
-	let total_qty = 0, total_amount = 0;
+	let total_qty = 0, total_quintal = 0, total_amount = 0;
 	(frm.doc.items || []).forEach(function(row) {
 		total_qty += flt(row.deliver_qty);
+		total_quintal += (flt(row.deliver_qty) * flt(row.pack_weight_kg)) / 100;
 		total_amount += flt(row.amount);
 	});
 	frm.set_value('total_delivery_qty', total_qty);
+	frm.set_value('total_delivery_quintal', total_quintal);
 	frm.set_value('total_amount', total_amount);
 }
 

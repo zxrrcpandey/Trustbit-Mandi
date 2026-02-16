@@ -14,6 +14,7 @@
   "pending_summary_html",
   "section_qty",
   "total_delivery_qty",
+  "total_delivery_quintal",
   "column_break_qty",
   "total_amount",
   "section_items",
@@ -79,6 +80,13 @@
    "read_only": 1
   },
   {
+   "description": "1 Quintal = 100 KG",
+   "fieldname": "total_delivery_quintal",
+   "fieldtype": "Float",
+   "label": "Total Delivery (Quintal)",
+   "read_only": 1
+  },
+  {
    "fieldname": "column_break_qty",
    "fieldtype": "Column Break"
   },
@@ -113,7 +121,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-02-17 12:00:00.000000",
+ "modified": "2026-02-17 13:00:00.000000",
  "modified_by": "Administrator",
  "module": "Trustbit Mandi",
  "name": "Deal Delivery",

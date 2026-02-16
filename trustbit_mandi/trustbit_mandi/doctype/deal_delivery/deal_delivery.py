@@ -46,13 +46,16 @@ class DealDelivery(Document):
 
 	def calculate_totals(self):
 		total_qty = 0
+		total_quintal = 0
 		total_amount = 0
 		for row in self.items:
 			row.amount = flt(row.deliver_qty) * flt(row.rate)
 			total_qty += flt(row.deliver_qty)
+			total_quintal += (flt(row.deliver_qty) * flt(row.pack_weight_kg)) / 100
 			total_amount += flt(row.amount)
 
 		self.total_delivery_qty = total_qty
+		self.total_delivery_quintal = total_quintal
 		self.total_amount = total_amount
 
 	def on_update(self):
