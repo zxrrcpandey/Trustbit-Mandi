@@ -45,6 +45,15 @@ class Deal(Document):
 	def calculate_totals(self):
 		self.total_qty = sum(flt(row.qty) for row in self.items)
 		self.total_amount = sum(flt(row.amount) for row in self.items)
+		self.total_quintal = sum(
+			(flt(row.qty) * flt(row.pack_weight_kg)) / 100 for row in self.items
+		)
+		self.total_delivered_quintal = sum(
+			(flt(row.delivered_qty) * flt(row.pack_weight_kg)) / 100 for row in self.items
+		)
+		self.total_pending_quintal = sum(
+			(flt(row.pending_qty) * flt(row.pack_weight_kg)) / 100 for row in self.items
+		)
 
 	def auto_update_status(self):
 		"""Auto-update parent status based on all item statuses. Never override Cancelled."""

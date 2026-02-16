@@ -647,13 +647,21 @@ function calculate_row_amount(frm, row, cdt, cdn) {
 
 
 function recalculate_deal_totals(frm) {
-	let total_qty = 0, total_amount = 0;
+	let total_qty = 0, total_amount = 0, total_quintal = 0;
+	let total_delivered_quintal = 0, total_pending_quintal = 0;
 	(frm.doc.items || []).forEach(function(row) {
 		total_qty += flt(row.qty);
 		total_amount += flt(row.amount);
+		let wt = flt(row.pack_weight_kg);
+		total_quintal += (flt(row.qty) * wt) / 100;
+		total_delivered_quintal += (flt(row.delivered_qty) * wt) / 100;
+		total_pending_quintal += (flt(row.pending_qty) * wt) / 100;
 	});
 	frm.set_value('total_qty', total_qty);
 	frm.set_value('total_amount', total_amount);
+	frm.set_value('total_quintal', total_quintal);
+	frm.set_value('total_delivered_quintal', total_delivered_quintal);
+	frm.set_value('total_pending_quintal', total_pending_quintal);
 }
 
 
@@ -682,10 +690,12 @@ function render_delivery_status(frm) {
 	html += '</tr></thead><tbody>';
 
 	let total_booked = 0, total_delivered = 0, total_pending = 0;
+	let total_booked_q = 0, total_delivered_q = 0, total_pending_q = 0;
 
 	(frm.doc.items || []).forEach(function(row, i) {
 		let delivered = flt(row.delivered_qty);
 		let pending = flt(row.pending_qty);
+		let wt = flt(row.pack_weight_kg);
 		let status = row.item_status || 'Open';
 		let indicator = status === 'Delivered' ? 'green'
 			: status === 'Partially Delivered' ? 'orange' : 'blue';
@@ -693,6 +703,9 @@ function render_delivery_status(frm) {
 		total_booked += flt(row.qty);
 		total_delivered += delivered;
 		total_pending += pending;
+		total_booked_q += (flt(row.qty) * wt) / 100;
+		total_delivered_q += (delivered * wt) / 100;
+		total_pending_q += (pending * wt) / 100;
 
 		html += '<tr>';
 		html += '<td>' + (i + 1) + '</td>';
@@ -705,13 +718,22 @@ function render_delivery_status(frm) {
 		html += '</tr>';
 	});
 
-	html += '</tbody><tfoot style="background: #f7f7f7; font-weight: bold;"><tr>';
-	html += '<td colspan="3">Total</td>';
+	html += '</tbody><tfoot style="background: #f7f7f7; font-weight: bold;">';
+	html += '<tr>';
+	html += '<td colspan="3">Total (Packs)</td>';
 	html += '<td class="text-right">' + total_booked + '</td>';
 	html += '<td class="text-right">' + total_delivered + '</td>';
 	html += '<td class="text-right">' + total_pending + '</td>';
 	html += '<td></td>';
-	html += '</tr></tfoot></table>';
+	html += '</tr>';
+	html += '<tr>';
+	html += '<td colspan="3">Total (Quintal)</td>';
+	html += '<td class="text-right">' + total_booked_q.toFixed(2) + '</td>';
+	html += '<td class="text-right">' + total_delivered_q.toFixed(2) + '</td>';
+	html += '<td class="text-right">' + total_pending_q.toFixed(2) + '</td>';
+	html += '<td></td>';
+	html += '</tr>';
+	html += '</tfoot></table>';
 
 	wrapper.html(html);
 }
