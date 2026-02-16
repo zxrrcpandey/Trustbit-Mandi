@@ -10,6 +10,8 @@
   "customer",
   "customer_name",
   "column_break_delivery",
+  "section_pending",
+  "pending_summary_html",
   "section_qty",
   "total_delivery_qty",
   "column_break_qty",
@@ -52,6 +54,17 @@
   {
    "fieldname": "column_break_delivery",
    "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "customer",
+   "fieldname": "section_pending",
+   "fieldtype": "Section Break",
+   "label": "Pending Deals Summary"
+  },
+  {
+   "fieldname": "pending_summary_html",
+   "fieldtype": "HTML",
+   "label": "Pending Summary"
   },
   {
    "fieldname": "section_qty",
@@ -100,7 +113,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-02-14 16:00:00.000000",
+ "modified": "2026-02-17 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Trustbit Mandi",
  "name": "Deal Delivery",
