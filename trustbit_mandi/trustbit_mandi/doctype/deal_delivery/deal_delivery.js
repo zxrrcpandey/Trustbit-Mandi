@@ -620,6 +620,7 @@ function show_add_extra_dialog(frm) {
 			child.is_extra = 1;
 			child.soda = '';
 			child.deal_item = '';
+			child.customer = frm.doc.customer_name || '';
 
 			frm.refresh_field('items');
 			recalculate_totals(frm);
