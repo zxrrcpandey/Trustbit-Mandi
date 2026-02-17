@@ -22,6 +22,8 @@
   "section_delivery",
   "delivered_qty",
   "pending_qty",
+  "delivered_quintal",
+  "pending_quintal",
   "column_break_delivery_status",
   "item_status"
  ],
@@ -141,6 +143,20 @@
    "read_only": 1
   },
   {
+   "default": "0",
+   "fieldname": "delivered_quintal",
+   "fieldtype": "Float",
+   "label": "Delivered (Qtl)",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "pending_quintal",
+   "fieldtype": "Float",
+   "label": "Pending (Qtl)",
+   "read_only": 1
+  },
+  {
    "fieldname": "column_break_delivery_status",
    "fieldtype": "Column Break"
   },
@@ -156,7 +172,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-02-14 16:00:00.000000",
+ "modified": "2026-02-17 20:00:00.000000",
  "modified_by": "Administrator",
  "module": "Trustbit Mandi",
  "name": "Deal Item",

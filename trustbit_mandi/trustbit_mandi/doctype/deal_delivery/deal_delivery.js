@@ -3,7 +3,7 @@
 
 frappe.ui.form.on('Deal Delivery', {
 	refresh: function(frm) {
-		// Get Items button (always show, validate customer on click)
+		// Get Items button
 		frm.add_custom_button(__('Get Items'), function() {
 			if (!frm.doc.customer) {
 				frappe.msgprint(__('Please select a Customer first.'));
@@ -11,6 +11,11 @@ frappe.ui.form.on('Deal Delivery', {
 			}
 			show_get_items_dialog(frm);
 		}).addClass('btn-primary');
+
+		// Add Extra Item button
+		frm.add_custom_button(__('Add Extra Item'), function() {
+			show_add_extra_dialog(frm);
+		});
 
 		// Render pending summary
 		render_pending_summary(frm);
@@ -28,6 +33,23 @@ frappe.ui.form.on('Deal Delivery Item', {
 		let row = locals[cdt][cdn];
 		frappe.model.set_value(cdt, cdn, 'amount', flt(row.deliver_qty) * flt(row.rate));
 		recalculate_totals(frm);
+	},
+
+	rate: function(frm, cdt, cdn) {
+		let row = locals[cdt][cdn];
+		frappe.model.set_value(cdt, cdn, 'amount', flt(row.deliver_qty) * flt(row.rate));
+		recalculate_totals(frm);
+	},
+
+	pack_size: function(frm, cdt, cdn) {
+		let row = locals[cdt][cdn];
+		if (row.pack_size) {
+			frappe.db.get_value('Deal Pack Size', row.pack_size, 'weight_kg', function(r) {
+				if (r) {
+					frappe.model.set_value(cdt, cdn, 'pack_weight_kg', flt(r.weight_kg));
+				}
+			});
+		}
 	}
 });
 
@@ -63,7 +85,7 @@ function render_pending_summary(frm) {
 
 			let rows = r.message;
 			let total_deal_qty = 0, total_delivered = 0, total_pending = 0;
-			let total_deal_quintal = 0, total_delivered_quintal = 0, total_pending_quintal = 0;
+			let total_booked_qtl = 0, total_delivered_qtl = 0, total_pending_qtl = 0;
 			let total_amount = 0;
 
 			let html = '<div style="max-height:300px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:6px;">';
@@ -78,6 +100,7 @@ function render_pending_summary(frm) {
 			html += '<th style="text-align:right;padding:6px 8px;font-size:11px;">DEAL QTY</th>';
 			html += '<th style="text-align:right;padding:6px 8px;font-size:11px;">DELIVERED</th>';
 			html += '<th style="text-align:right;padding:6px 8px;font-size:11px;">PENDING</th>';
+			html += '<th style="text-align:right;padding:6px 8px;font-size:11px;">PENDING QTL</th>';
 			html += '<th style="text-align:right;padding:6px 8px;font-size:11px;">RATE</th>';
 			html += '</tr></thead><tbody>';
 
@@ -86,13 +109,14 @@ function render_pending_summary(frm) {
 				let delivered = flt(s.already_delivered);
 				let pending = flt(s.pending_qty);
 				let wt = flt(s.pack_weight_kg);
+				let pending_qtl = flt(s.pending_quintal);
 
 				total_deal_qty += deal_qty;
 				total_delivered += delivered;
 				total_pending += pending;
-				total_deal_quintal += (deal_qty * wt) / 100;
-				total_delivered_quintal += (delivered * wt) / 100;
-				total_pending_quintal += (pending * wt) / 100;
+				total_booked_qtl += flt(s.booked_quintal);
+				total_delivered_qtl += flt(s.delivered_quintal);
+				total_pending_qtl += pending_qtl;
 				total_amount += pending * flt(s.rate);
 
 				html += '<tr>';
@@ -104,6 +128,7 @@ function render_pending_summary(frm) {
 				html += '<td style="text-align:right;padding:5px 8px;">' + deal_qty + '</td>';
 				html += '<td style="text-align:right;padding:5px 8px;color:#718096;">' + delivered + '</td>';
 				html += '<td style="text-align:right;padding:5px 8px;font-weight:600;color:' + (pending > 0 ? '#e53e3e' : '#38a169') + ';">' + pending + '</td>';
+				html += '<td style="text-align:right;padding:5px 8px;font-weight:600;color:#805ad5;">' + pending_qtl.toFixed(2) + '</td>';
 				html += '<td style="text-align:right;padding:5px 8px;">' + format_number(s.rate) + '</td>';
 				html += '</tr>';
 			});
@@ -115,14 +140,15 @@ function render_pending_summary(frm) {
 			html += '<td style="text-align:right;padding:6px 8px;">' + total_deal_qty + '</td>';
 			html += '<td style="text-align:right;padding:6px 8px;">' + total_delivered + '</td>';
 			html += '<td style="text-align:right;padding:6px 8px;color:#e53e3e;">' + total_pending + '</td>';
+			html += '<td></td>';
 			html += '<td style="text-align:right;padding:6px 8px;">&#8377; ' + format_number(total_amount) + '</td>';
 			html += '</tr>';
 			html += '<tr style="background:#edf2f7;">';
 			html += '<td colspan="5" style="padding:6px 8px;">Total (Quintal)</td>';
-			html += '<td style="text-align:right;padding:6px 8px;">' + total_deal_quintal.toFixed(2) + '</td>';
-			html += '<td style="text-align:right;padding:6px 8px;">' + total_delivered_quintal.toFixed(2) + '</td>';
-			html += '<td style="text-align:right;padding:6px 8px;color:#e53e3e;">' + total_pending_quintal.toFixed(2) + '</td>';
-			html += '<td></td>';
+			html += '<td style="text-align:right;padding:6px 8px;">' + total_booked_qtl.toFixed(2) + '</td>';
+			html += '<td style="text-align:right;padding:6px 8px;">' + total_delivered_qtl.toFixed(2) + '</td>';
+			html += '<td style="text-align:right;padding:6px 8px;color:#e53e3e;">' + total_pending_qtl.toFixed(2) + '</td>';
+			html += '<td></td><td></td>';
 			html += '</tr></tfoot>';
 			html += '</table></div>';
 
@@ -133,29 +159,60 @@ function render_pending_summary(frm) {
 
 
 // ============================================================
-// Get Items Dialog
+// Get Items Dialog (with flexible pack size)
 // ============================================================
 
 function show_get_items_dialog(frm) {
-	frappe.call({
-		method: 'trustbit_mandi.trustbit_mandi.doctype.deal_delivery.deal_delivery.get_pending_deal_items',
-		args: {
-			customer: frm.doc.customer,
-			exclude_delivery: frm.doc.name || null
-		},
-		freeze: true,
-		freeze_message: __('Loading pending deals...'),
-		callback: function(r) {
-			if (!r.message || r.message.length === 0) {
+	// Fetch pending items, pack sizes, and bag costs in parallel
+	let pending_items = null;
+	let pack_sizes = null;
+	let bag_cost_map = {};
+	let calls_done = 0;
+	let total_calls = 3;
+
+	function check_ready() {
+		calls_done++;
+		if (calls_done >= total_calls) {
+			if (!pending_items || pending_items.length === 0) {
 				frappe.msgprint(__('No pending Deal Items found for this customer.'));
 				return;
 			}
-			build_get_items_dialog(frm, r.message);
+			build_get_items_dialog(frm, pending_items, pack_sizes, bag_cost_map);
 		}
+	}
+
+	frappe.call({
+		method: 'trustbit_mandi.trustbit_mandi.doctype.deal_delivery.deal_delivery.get_pending_deal_items',
+		args: { customer: frm.doc.customer, exclude_delivery: frm.doc.name || null },
+		freeze: true,
+		freeze_message: __('Loading pending deals...'),
+		callback: function(r) { pending_items = r.message || []; check_ready(); }
+	});
+
+	frappe.call({
+		method: 'trustbit_mandi.trustbit_mandi.doctype.deal_delivery.deal_delivery.get_pack_sizes',
+		callback: function(r) { pack_sizes = r.message || []; check_ready(); }
+	});
+
+	frappe.call({
+		method: 'trustbit_mandi.trustbit_mandi.doctype.deal_delivery.deal_delivery.get_bag_cost_map',
+		callback: function(r) { bag_cost_map = r.message || {}; check_ready(); }
 	});
 }
 
-function build_get_items_dialog(frm, pending_items) {
+function build_get_items_dialog(frm, pending_items, pack_sizes, bag_cost_map) {
+	// Build pack_weight_map for quick lookup
+	let pack_weight_map = {};
+	pack_sizes.forEach(function(ps) {
+		pack_weight_map[ps.pack_size] = flt(ps.weight_kg);
+	});
+
+	// Build pack size dropdown options HTML
+	let pack_options_html = '<option value="">--</option>';
+	pack_sizes.forEach(function(ps) {
+		pack_options_html += '<option value="' + ps.pack_size + '">' + ps.pack_size + ' (' + ps.weight_kg + ' KG)</option>';
+	});
+
 	// Build row state from pending items
 	let rows = [];
 	pending_items.forEach(function(p, i) {
@@ -167,11 +224,16 @@ function build_get_items_dialog(frm, pending_items) {
 			customer_name: p.customer_name,
 			item: p.item,
 			item_name: p.item_name,
+			original_pack_size: p.pack_size,
+			original_pack_weight_kg: flt(p.pack_weight_kg),
 			pack_size: p.pack_size,
 			pack_weight_kg: flt(p.pack_weight_kg),
 			qty: flt(p.qty),
 			already_delivered: flt(p.already_delivered),
 			pending_qty: flt(p.pending_qty),
+			pending_quintal: flt(p.pending_quintal),
+			price_per_kg: flt(p.price_per_kg),
+			base_price_50kg: flt(p.base_price_50kg),
 			deliver_qty: flt(p.pending_qty),
 			rate: flt(p.rate),
 			checked: true
@@ -207,78 +269,87 @@ function build_get_items_dialog(frm, pending_items) {
 
 		// Info bar
 		html += '<div style="font-size:11px;color:#718096;padding:6px 10px;margin-bottom:10px;background:#f0fff4;border-left:3px solid #38a169;border-radius:4px;">'
-			+ 'All pending items are pre-selected with full pending qty. Untick or adjust <b>Deliver Qty</b> as needed.</div>';
+			+ 'All items pre-selected with full pending qty. Change <b>Pack Size</b> if loading different packs. Adjust <b>Deliver Qty</b> as needed.</div>';
 
 		// Table
 		html += '<div style="max-height:380px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:6px;">';
-		html += '<table class="table table-sm" style="margin-bottom:0;font-size:12.5px;">';
+		html += '<table class="table table-sm" style="margin-bottom:0;font-size:12px;">';
 		html += '<thead style="background:#f7fafc;position:sticky;top:0;z-index:1;">';
 		html += '<tr>';
-		html += '<th style="width:32px;text-align:center;padding:8px 4px;font-size:11px;">SEL</th>';
-		html += '<th style="padding:8px 6px;font-size:11px;">DEAL</th>';
-		html += '<th style="padding:8px 6px;font-size:11px;">DATE</th>';
-		html += '<th style="padding:8px 6px;font-size:11px;">ITEM</th>';
-		html += '<th style="padding:8px 6px;font-size:11px;">PACK SIZE</th>';
-		html += '<th style="text-align:right;padding:8px 6px;font-size:11px;">DEAL QTY</th>';
-		html += '<th style="text-align:right;padding:8px 6px;font-size:11px;">DELIVERED</th>';
-		html += '<th style="text-align:right;padding:8px 6px;font-size:11px;">PENDING</th>';
-		html += '<th style="text-align:right;padding:8px 6px;font-size:11px;width:80px;">DELIVER QTY</th>';
-		html += '<th style="text-align:right;padding:8px 6px;font-size:11px;">RATE</th>';
-		html += '<th style="text-align:right;padding:8px 6px;font-size:11px;">AMOUNT</th>';
+		html += '<th style="width:30px;text-align:center;padding:7px 3px;font-size:10px;">SEL</th>';
+		html += '<th style="padding:7px 5px;font-size:10px;">DEAL</th>';
+		html += '<th style="padding:7px 5px;font-size:10px;">ITEM</th>';
+		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;">PENDING QTL</th>';
+		html += '<th style="padding:7px 5px;font-size:10px;">PACK SIZE</th>';
+		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;">WT</th>';
+		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;width:75px;">DELIVER QTY</th>';
+		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;">RATE</th>';
+		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;">AMOUNT</th>';
 		html += '</tr></thead><tbody>';
 
 		rows.forEach(function(row) {
 			let amount = flt(row.deliver_qty) * flt(row.rate);
-			let row_bg = row.checked ? 'background:#f0fff4;' : '';
+			let pack_changed = row.pack_size !== row.original_pack_size;
+			let row_bg = '';
+			if (row.checked && pack_changed) row_bg = 'background:#fffff0;';
+			else if (row.checked) row_bg = 'background:#f0fff4;';
 
 			html += '<tr style="' + row_bg + '" data-idx="' + row.idx + '">';
 
 			// Checkbox
-			html += '<td style="text-align:center;vertical-align:middle;padding:6px 4px;">'
+			html += '<td style="text-align:center;vertical-align:middle;padding:5px 3px;">'
 				+ '<input type="checkbox" class="row-check" data-idx="' + row.idx + '" '
 				+ (row.checked ? 'checked' : '') + ' style="width:15px;height:15px;cursor:pointer;">'
 				+ '</td>';
 
 			// Deal
-			html += '<td style="vertical-align:middle;padding:6px;font-weight:600;color:#2b6cb0;font-size:12px;">'
-				+ row.deal_name + '</td>';
-
-			// Date
-			html += '<td style="vertical-align:middle;padding:6px;color:#718096;font-size:12px;">'
-				+ frappe.datetime.str_to_user(row.soda_date) + '</td>';
+			html += '<td style="vertical-align:middle;padding:5px;font-size:11px;">'
+				+ '<span style="font-weight:600;color:#2b6cb0;">' + row.deal_name + '</span>'
+				+ '<br><span style="color:#a0aec0;font-size:10px;">' + frappe.datetime.str_to_user(row.soda_date) + '</span>'
+				+ '</td>';
 
 			// Item
-			html += '<td style="vertical-align:middle;padding:6px;font-weight:500;">'
+			html += '<td style="vertical-align:middle;padding:5px;font-weight:500;">'
 				+ (row.item_name || row.item) + '</td>';
 
-			// Pack Size
-			html += '<td style="vertical-align:middle;padding:6px;">' + row.pack_size + '</td>';
+			// Pending Quintal
+			html += '<td style="text-align:right;vertical-align:middle;padding:5px;font-weight:600;color:#805ad5;">'
+				+ row.pending_quintal.toFixed(2) + '</td>';
 
-			// Deal Qty
-			html += '<td style="text-align:right;vertical-align:middle;padding:6px;">' + row.qty + '</td>';
+			// Pack Size (dropdown)
+			let pack_select = '<select class="pack-select" data-idx="' + row.idx + '" '
+				+ 'style="padding:4px 5px;border:1px solid ' + (pack_changed ? '#d69e2e' : '#cbd5e0') + ';border-radius:4px;font-size:11.5px;min-width:90px;'
+				+ (pack_changed ? 'font-weight:600;background:#fffff0;' : '') + '">';
+			pack_sizes.forEach(function(ps) {
+				pack_select += '<option value="' + ps.pack_size + '"'
+					+ (row.pack_size === ps.pack_size ? ' selected' : '') + '>'
+					+ ps.pack_size + ' (' + ps.weight_kg + ' KG)</option>';
+			});
+			pack_select += '</select>';
+			html += '<td style="vertical-align:middle;padding:5px;">' + pack_select;
+			if (pack_changed) {
+				html += '<br><span style="font-size:9px;color:#a0aec0;">was: ' + row.original_pack_size + '</span>';
+			}
+			html += '</td>';
 
-			// Already Delivered
-			html += '<td style="text-align:right;vertical-align:middle;padding:6px;color:#718096;">'
-				+ row.already_delivered + '</td>';
-
-			// Pending
-			html += '<td style="text-align:right;vertical-align:middle;padding:6px;font-weight:600;color:#e53e3e;">'
-				+ row.pending_qty + '</td>';
+			// Weight
+			html += '<td style="text-align:right;vertical-align:middle;padding:5px;color:#718096;font-size:11px;">'
+				+ row.pack_weight_kg + '</td>';
 
 			// Deliver Qty (editable)
-			html += '<td style="text-align:right;vertical-align:middle;padding:6px;">'
+			html += '<td style="text-align:right;vertical-align:middle;padding:5px;">'
 				+ '<input type="number" class="deliver-input" data-idx="' + row.idx + '" '
-				+ 'value="' + (row.deliver_qty || '') + '" min="0" max="' + row.pending_qty + '" '
-				+ 'style="width:70px;padding:5px 6px;border:1px solid #cbd5e0;border-radius:4px;text-align:right;font-size:12.5px;font-weight:600;">'
+				+ 'value="' + (row.deliver_qty || '') + '" min="0" '
+				+ 'style="width:68px;padding:4px 5px;border:1px solid #cbd5e0;border-radius:4px;text-align:right;font-size:12px;font-weight:600;">'
 				+ '</td>';
 
 			// Rate
-			html += '<td style="text-align:right;vertical-align:middle;padding:6px;color:#718096;">'
+			html += '<td style="text-align:right;vertical-align:middle;padding:5px;color:#718096;font-size:12px;">'
 				+ format_number(row.rate) + '</td>';
 
 			// Amount
-			html += '<td style="text-align:right;vertical-align:middle;padding:6px;'
-				+ (amount > 0 ? 'font-weight:600;' : 'color:#718096;') + '">'
+			html += '<td style="text-align:right;vertical-align:middle;padding:5px;'
+				+ (amount > 0 ? 'font-weight:600;' : 'color:#718096;') + 'font-size:12px;">'
 				+ (amount > 0 ? format_number(amount) : '--') + '</td>';
 
 			html += '</tr>';
@@ -289,17 +360,17 @@ function build_get_items_dialog(frm, pending_items) {
 		// Footer summary
 		let summary = get_dialog_summary(rows);
 		html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:8px 0;">';
-		html += '<div style="display:flex;gap:24px;font-size:13px;color:#4a5568;">';
+		html += '<div style="display:flex;gap:20px;font-size:12.5px;color:#4a5568;">';
 		html += '<div>Selected: <strong>' + summary.selected + '</strong> of ' + rows.length + '</div>';
-		html += '<div>Total Deliver Qty: <strong>' + summary.total_qty + '</strong> packs</div>';
-		html += '<div>Total Quintal: <strong>' + summary.total_quintal.toFixed(2) + '</strong></div>';
-		html += '<div>Total Amount: <strong>&#8377; ' + format_number(summary.total_amount) + '</strong></div>';
+		html += '<div>Deliver: <strong>' + summary.total_qty + '</strong> packs</div>';
+		html += '<div>Quintal: <strong>' + summary.total_quintal.toFixed(2) + '</strong></div>';
+		html += '<div>Amount: <strong>&#8377; ' + format_number(summary.total_amount) + '</strong></div>';
 		html += '</div></div>';
 
 		wrapper.html(html);
 
 		// Bind events
-		bind_get_items_events(wrapper, rows, render_table);
+		bind_get_items_events(wrapper, rows, pack_weight_map, bag_cost_map, render_table);
 	}
 
 	render_table();
@@ -308,7 +379,7 @@ function build_get_items_dialog(frm, pending_items) {
 }
 
 
-function bind_get_items_events(wrapper, rows, render_table) {
+function bind_get_items_events(wrapper, rows, pack_weight_map, bag_cost_map, render_table) {
 	// Checkbox
 	wrapper.find('.row-check').off('change').on('change', function() {
 		let idx = parseInt($(this).data('idx'));
@@ -318,8 +389,31 @@ function bind_get_items_events(wrapper, rows, render_table) {
 			if (!row.checked) {
 				row.deliver_qty = 0;
 			} else {
-				row.deliver_qty = row.pending_qty;
+				// Recalculate deliver_qty for current pack size
+				row.deliver_qty = calc_deliver_packs(row);
 			}
+			render_table();
+		}
+	});
+
+	// Pack size dropdown
+	wrapper.find('.pack-select').off('change').on('change', function() {
+		let idx = parseInt($(this).data('idx'));
+		let new_pack = $(this).val();
+		let row = rows[idx];
+		if (row && new_pack) {
+			row.pack_size = new_pack;
+			row.pack_weight_kg = pack_weight_map[new_pack] || 0;
+
+			// Recalculate rate for new pack size
+			let bc = flt(bag_cost_map[row.item + ':' + new_pack]);
+			row.rate = (flt(row.price_per_kg) * flt(row.pack_weight_kg)) + bc;
+
+			// Auto-convert deliver_qty to match pending quintal
+			row.deliver_qty = calc_deliver_packs(row);
+
+			// Auto-check
+			if (!row.checked) row.checked = true;
 			render_table();
 		}
 	});
@@ -330,23 +424,31 @@ function bind_get_items_events(wrapper, rows, render_table) {
 		let val = parseFloat($(this).val()) || 0;
 		let row = rows[idx];
 		if (row) {
-			if (val > row.pending_qty) {
-				val = row.pending_qty;
+			if (val < 0) val = 0;
+
+			// Validate in quintal
+			let delivering_qtl = (val * flt(row.pack_weight_kg)) / 100;
+			if (delivering_qtl > flt(row.pending_quintal) + 0.01) {
+				let max_packs = calc_deliver_packs(row);
+				val = max_packs;
 				$(this).val(val);
 				frappe.show_alert({
-					message: __('Cannot exceed pending qty ({0})', [row.pending_qty]),
+					message: __('Cannot exceed pending {0} Qtl', [row.pending_quintal.toFixed(2)]),
 					indicator: 'orange'
 				}, 3);
 			}
-			if (val < 0) val = 0;
 			row.deliver_qty = val;
-			// Auto-check if qty > 0
-			if (val > 0 && !row.checked) {
-				row.checked = true;
-			}
+			if (val > 0 && !row.checked) row.checked = true;
 			render_table();
 		}
 	});
+}
+
+
+function calc_deliver_packs(row) {
+	/**Convert pending quintal to packs for current pack size.*/
+	if (flt(row.pack_weight_kg) <= 0) return 0;
+	return Math.floor(flt(row.pending_quintal) * 100 / flt(row.pack_weight_kg));
 }
 
 
@@ -418,6 +520,7 @@ function add_selected_to_delivery(frm, rows, dialog) {
 		child.deliver_qty = item.deliver_qty;
 		child.rate = item.rate;
 		child.amount = item.amount;
+		child.is_extra = 0;
 	});
 
 	frm.refresh_field('items');
@@ -429,6 +532,157 @@ function add_selected_to_delivery(frm, rows, dialog) {
 		message: __('Added {0} item(s) to delivery', [items_to_add.length]),
 		indicator: 'green'
 	}, 5);
+}
+
+
+// ============================================================
+// Add Extra Item Dialog
+// ============================================================
+
+function show_add_extra_dialog(frm) {
+	let d = new frappe.ui.Dialog({
+		title: __('Add Extra Item'),
+		fields: [
+			{
+				fieldname: 'item',
+				fieldtype: 'Link',
+				label: __('Item'),
+				options: 'Item',
+				reqd: 1,
+				get_query: function() {
+					return { filters: { disabled: 0 } };
+				}
+			},
+			{
+				fieldname: 'pack_size',
+				fieldtype: 'Link',
+				label: __('Pack Size'),
+				options: 'Deal Pack Size',
+				reqd: 1,
+				get_query: function() {
+					return { filters: { is_active: 1 } };
+				}
+			},
+			{
+				fieldname: 'pack_weight_kg',
+				fieldtype: 'Float',
+				label: __('Pack Weight (KG)'),
+				read_only: 1
+			},
+			{ fieldtype: 'Column Break' },
+			{
+				fieldname: 'deliver_qty',
+				fieldtype: 'Float',
+				label: __('Qty (Packs)'),
+				reqd: 1
+			},
+			{
+				fieldname: 'rate',
+				fieldtype: 'Currency',
+				label: __('Rate (per Pack)'),
+				reqd: 1,
+				description: __('Enter rate manually or use Fetch Rate')
+			},
+			{
+				fieldname: 'amount',
+				fieldtype: 'Currency',
+				label: __('Amount'),
+				read_only: 1
+			},
+			{ fieldtype: 'Section Break', label: __('Fetch Rate from Price List') },
+			{
+				fieldname: 'price_list_area',
+				fieldtype: 'Link',
+				label: __('Price List Area'),
+				options: 'Deal Price List Area',
+				description: __('Optional: select area and click Fetch Rate')
+			},
+			{
+				fieldname: 'fetch_rate_btn',
+				fieldtype: 'Button',
+				label: __('Fetch Rate')
+			}
+		],
+		primary_action_label: __('Add to Delivery'),
+		primary_action: function(values) {
+			if (!values.item || !values.pack_size || !values.deliver_qty || !values.rate) {
+				frappe.msgprint(__('Please fill all required fields.'));
+				return;
+			}
+
+			let child = frm.add_child('items');
+			child.item = values.item;
+			child.pack_size = values.pack_size;
+			child.pack_weight_kg = values.pack_weight_kg || 0;
+			child.deliver_qty = values.deliver_qty;
+			child.rate = values.rate;
+			child.amount = flt(values.deliver_qty) * flt(values.rate);
+			child.is_extra = 1;
+			child.soda = '';
+			child.deal_item = '';
+
+			frm.refresh_field('items');
+			recalculate_totals(frm);
+			frm.dirty();
+
+			d.hide();
+			frappe.show_alert({
+				message: __('Added extra item: {0}', [values.item]),
+				indicator: 'green'
+			}, 5);
+		}
+	});
+
+	// Fetch weight when pack_size changes
+	d.fields_dict.pack_size.df.onchange = function() {
+		let ps = d.get_value('pack_size');
+		if (ps) {
+			frappe.db.get_value('Deal Pack Size', ps, 'weight_kg', function(r) {
+				if (r) d.set_value('pack_weight_kg', flt(r.weight_kg));
+			});
+		}
+	};
+
+	// Auto-calculate amount when qty or rate changes
+	d.fields_dict.deliver_qty.df.onchange = function() {
+		d.set_value('amount', flt(d.get_value('deliver_qty')) * flt(d.get_value('rate')));
+	};
+	d.fields_dict.rate.df.onchange = function() {
+		d.set_value('amount', flt(d.get_value('deliver_qty')) * flt(d.get_value('rate')));
+	};
+
+	// Fetch Rate button
+	d.fields_dict.fetch_rate_btn.df.click = function() {
+		let area = d.get_value('price_list_area');
+		let item = d.get_value('item');
+		let ps = d.get_value('pack_size');
+		if (!area || !item || !ps) {
+			frappe.msgprint(__('Please select Item, Pack Size and Price List Area first.'));
+			return;
+		}
+		frappe.call({
+			method: 'trustbit_mandi.trustbit_mandi.doctype.deal_price_list.deal_price_list.get_rate_for_pack_size',
+			args: { price_list_area: area, item: item, pack_size: ps },
+			callback: function(r) {
+				if (r.message) {
+					d.set_value('rate', r.message.rate);
+					d.set_value('pack_weight_kg', r.message.pack_weight_kg || 0);
+					d.set_value('amount', flt(d.get_value('deliver_qty')) * flt(r.message.rate));
+					frappe.show_alert({
+						message: __('Rate fetched: {0} per pack', [r.message.rate.toFixed(2)]),
+						indicator: 'green'
+					}, 3);
+				} else {
+					frappe.show_alert({
+						message: __('No price found for this combination.'),
+						indicator: 'orange'
+					}, 3);
+				}
+			}
+		});
+	};
+
+	d.show();
 }
 
 

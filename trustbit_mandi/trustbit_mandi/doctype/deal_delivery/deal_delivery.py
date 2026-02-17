@@ -8,11 +8,28 @@ from frappe.utils import flt
 
 class DealDelivery(Document):
 	def before_save(self):
+		self.set_extra_flag()
 		self.validate_items()
 		self.calculate_totals()
 
+	def set_extra_flag(self):
+		"""Auto-set is_extra when soda (Deal) is not set."""
+		for row in self.items:
+			row.is_extra = 1 if not row.soda else 0
+
 	def validate_items(self):
 		for row in self.items:
+			if not row.deliver_qty or flt(row.deliver_qty) <= 0:
+				frappe.throw("Row {0}: Deliver Qty must be greater than 0.".format(row.idx))
+
+			# Skip deal validation for adhoc/extra items
+			if not row.soda:
+				if not row.item:
+					frappe.throw("Row {0}: Item is required.".format(row.idx))
+				if not row.pack_size:
+					frappe.throw("Row {0}: Pack Size is required.".format(row.idx))
+				continue
+
 			deal = frappe.get_doc("Deal", row.soda)
 
 			if deal.status == "Cancelled":
@@ -29,18 +46,17 @@ class DealDelivery(Document):
 				frappe.throw("Deal Item {0} not found in Deal {1}.".format(
 					row.deal_item, row.soda))
 
-			if deal_item_row.item_status == "Delivered":
-				frappe.throw("Deal {0}, Item {1} is already fully delivered.".format(
-					row.soda, deal_item_row.item))
-
-			other_delivered = get_other_delivered_qty_for_item(
+			# Validate in quintal (allows different pack sizes)
+			booked_quintal = (flt(deal_item_row.qty) * flt(deal_item_row.pack_weight_kg)) / 100
+			other_delivered_quintal = get_other_delivered_quintal_for_item(
 				row.soda, row.deal_item, self.name)
-			available = flt(deal_item_row.qty) - flt(other_delivered)
+			available_quintal = booked_quintal - flt(other_delivered_quintal)
+			delivering_quintal = (flt(row.deliver_qty) * flt(row.pack_weight_kg)) / 100
 
-			if flt(row.deliver_qty) > available:
+			if delivering_quintal > available_quintal + 0.01:
 				frappe.throw(
-					"Deliver Qty ({0}) for Deal {1} Item {2} exceeds available pending qty ({3})".format(
-						row.deliver_qty, row.soda, deal_item_row.item, available
+					"Row {0}: Delivering {1:.2f} Qtl for Deal {2} Item {3} exceeds available {4:.2f} Qtl".format(
+						row.idx, delivering_quintal, row.soda, deal_item_row.item, available_quintal
 					)
 				)
 
@@ -64,7 +80,8 @@ class DealDelivery(Document):
 	def on_trash(self):
 		self._affected_deals = set()
 		for row in self.items:
-			self._affected_deals.add(row.soda)
+			if row.soda:
+				self._affected_deals.add(row.soda)
 
 	def after_delete(self):
 		for deal_name in getattr(self, '_affected_deals', set()):
@@ -77,7 +94,8 @@ class DealDelivery(Document):
 	def update_deal_statuses(self):
 		affected_deals = set()
 		for row in self.items:
-			affected_deals.add(row.soda)
+			if row.soda:
+				affected_deals.add(row.soda)
 
 		for deal_name in affected_deals:
 			deal = frappe.get_doc("Deal", deal_name)
@@ -85,7 +103,7 @@ class DealDelivery(Document):
 
 
 def get_other_delivered_qty_for_item(deal_name, deal_item_name, exclude_delivery=None):
-	"""Get total delivered qty for a specific Deal Item row."""
+	"""Get total delivered qty (packs) for a specific Deal Item row."""
 	conditions = ["sdi.soda = %s", "sdi.deal_item = %s"]
 	values = [deal_name, deal_item_name]
 
@@ -95,6 +113,25 @@ def get_other_delivered_qty_for_item(deal_name, deal_item_name, exclude_delivery
 
 	result = frappe.db.sql("""
 		SELECT COALESCE(SUM(sdi.deliver_qty), 0)
+		FROM `tabDeal Delivery Item` sdi
+		INNER JOIN `tabDeal Delivery` sd ON sd.name = sdi.parent
+		WHERE {conditions}
+	""".format(conditions=" AND ".join(conditions)), values)
+
+	return flt(result[0][0]) if result else 0
+
+
+def get_other_delivered_quintal_for_item(deal_name, deal_item_name, exclude_delivery=None):
+	"""Get total delivered quintal for a specific Deal Item row."""
+	conditions = ["sdi.soda = %s", "sdi.deal_item = %s"]
+	values = [deal_name, deal_item_name]
+
+	if exclude_delivery:
+		conditions.append("sd.name != %s")
+		values.append(exclude_delivery)
+
+	result = frappe.db.sql("""
+		SELECT COALESCE(SUM(sdi.deliver_qty * sdi.pack_weight_kg / 100), 0)
 		FROM `tabDeal Delivery Item` sdi
 		INNER JOIN `tabDeal Delivery` sd ON sd.name = sdi.parent
 		WHERE {conditions}
@@ -133,25 +170,35 @@ def get_pending_deal_items(customer, item=None, pack_size=None, exclude_delivery
 			di.delivered_qty,
 			di.pending_qty,
 			di.rate,
+			di.price_per_kg,
+			di.base_price_50kg,
 			di.item_status
 		FROM `tabDeal Item` di
 		INNER JOIN `tabDeal` d ON d.name = di.parent
 		WHERE d.customer = %s
 		  AND d.status IN ('Open', 'Confirmed', 'Partially Delivered')
 		  AND di.item_status IN ('Open', 'Partially Delivered')
-		  AND (di.qty - di.delivered_qty) > 0
 		  {item_conditions}
 		ORDER BY d.soda_date ASC, d.creation ASC, di.idx ASC
 	""".format(item_conditions=item_conditions), values, as_dict=True)
 
 	result = []
 	for row in rows:
-		other_delivered = get_other_delivered_qty_for_item(
+		booked_quintal = (flt(row.qty) * flt(row.pack_weight_kg)) / 100
+		other_delivered_quintal = get_other_delivered_quintal_for_item(
 			row.deal_name, row.deal_item_name, exclude_delivery)
-		actual_pending = flt(row.qty) - flt(other_delivered)
-		if actual_pending > 0:
-			row['already_delivered'] = flt(other_delivered)
-			row['pending_qty'] = actual_pending
+		pending_quintal = booked_quintal - flt(other_delivered_quintal)
+
+		other_delivered_packs = get_other_delivered_qty_for_item(
+			row.deal_name, row.deal_item_name, exclude_delivery)
+		actual_pending_packs = flt(row.qty) - flt(other_delivered_packs)
+
+		if pending_quintal > 0.001:
+			row['already_delivered'] = flt(other_delivered_packs)
+			row['pending_qty'] = actual_pending_packs
+			row['booked_quintal'] = booked_quintal
+			row['delivered_quintal'] = flt(other_delivered_quintal)
+			row['pending_quintal'] = pending_quintal
 			result.append(row)
 
 	return result
@@ -191,3 +238,28 @@ def allocate_fifo(customer, total_qty, item=None, pack_size=None, exclude_delive
 		)
 
 	return allocations
+
+
+@frappe.whitelist()
+def get_pack_sizes():
+	"""Get all active pack sizes for dropdown."""
+	return frappe.db.sql("""
+		SELECT name as pack_size, weight_kg
+		FROM `tabDeal Pack Size`
+		WHERE is_active = 1
+		ORDER BY weight_kg ASC
+	""", as_dict=True)
+
+
+@frappe.whitelist()
+def get_bag_cost_map():
+	"""Get bag costs keyed by item:pack_size."""
+	rows = frappe.db.sql("""
+		SELECT item, pack_size, bag_cost
+		FROM `tabPackage Bag Master`
+		WHERE is_active = 1
+	""", as_dict=True)
+	result = {}
+	for r in rows:
+		result[r.item + ":" + r.pack_size] = flt(r.bag_cost)
+	return result

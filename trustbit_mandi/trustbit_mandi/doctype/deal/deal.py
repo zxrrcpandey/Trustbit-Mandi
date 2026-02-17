@@ -16,28 +16,23 @@ class Deal(Document):
 		if not self.items:
 			frappe.throw("At least one item is required in the Deal.")
 
-		for row in self.items:
-			if flt(row.delivered_qty) > flt(row.qty):
-				frappe.throw(
-					"Row {0}: Delivered Qty ({1}) cannot exceed Qty ({2}) for item {3}".format(
-						row.idx, row.delivered_qty, row.qty, row.item
-					)
-				)
-
 	def calculate_items(self):
-		"""Calculate amount, pending_qty and item_status for each item row."""
+		"""Calculate amount, pending_qty, quintal and item_status for each item row."""
 		for row in self.items:
 			row.amount = flt(row.qty) * flt(row.rate)
 			row.pending_qty = flt(row.qty) - flt(row.delivered_qty)
+			booked_quintal = (flt(row.qty) * flt(row.pack_weight_kg)) / 100
+			row.pending_quintal = booked_quintal - flt(row.delivered_quintal)
 			self._update_item_status(row)
 
 	def _update_item_status(self, row):
-		delivered = flt(row.delivered_qty)
-		total = flt(row.qty)
+		"""Determine item status based on quintal comparison."""
+		booked_quintal = (flt(row.qty) * flt(row.pack_weight_kg)) / 100
+		delivered_quintal = flt(row.delivered_quintal)
 
-		if delivered <= 0:
+		if delivered_quintal <= 0:
 			row.item_status = "Open"
-		elif delivered >= total:
+		elif delivered_quintal >= booked_quintal - 0.001:
 			row.item_status = "Delivered"
 		else:
 			row.item_status = "Partially Delivered"
@@ -49,10 +44,10 @@ class Deal(Document):
 			(flt(row.qty) * flt(row.pack_weight_kg)) / 100 for row in self.items
 		)
 		self.total_delivered_quintal = sum(
-			(flt(row.delivered_qty) * flt(row.pack_weight_kg)) / 100 for row in self.items
+			flt(row.delivered_quintal) for row in self.items
 		)
 		self.total_pending_quintal = sum(
-			(flt(row.pending_qty) * flt(row.pack_weight_kg)) / 100 for row in self.items
+			flt(row.pending_quintal) for row in self.items
 		)
 
 	def auto_update_status(self):
@@ -75,17 +70,22 @@ class Deal(Document):
 				self.status = "Open"
 
 	def update_delivery_status(self):
-		"""Called by Deal Delivery to recalculate delivered_qty for ALL item rows."""
+		"""Called by Deal Delivery to recalculate delivered qty/quintal for ALL item rows."""
 		for row in self.items:
-			total_delivered = frappe.db.sql("""
-				SELECT COALESCE(SUM(sdi.deliver_qty), 0)
+			result = frappe.db.sql("""
+				SELECT
+					COALESCE(SUM(sdi.deliver_qty), 0),
+					COALESCE(SUM(sdi.deliver_qty * sdi.pack_weight_kg / 100), 0)
 				FROM `tabDeal Delivery Item` sdi
 				INNER JOIN `tabDeal Delivery` sd ON sd.name = sdi.parent
 				WHERE sdi.soda = %s AND sdi.deal_item = %s
-			""", (self.name, row.name))[0][0]
+			""", (self.name, row.name))[0]
 
-			row.delivered_qty = flt(total_delivered)
+			row.delivered_qty = flt(result[0])
+			row.delivered_quintal = flt(result[1])
 			row.pending_qty = flt(row.qty) - flt(row.delivered_qty)
+			booked_quintal = (flt(row.qty) * flt(row.pack_weight_kg)) / 100
+			row.pending_quintal = booked_quintal - flt(row.delivered_quintal)
 			self._update_item_status(row)
 
 		self.calculate_totals()
