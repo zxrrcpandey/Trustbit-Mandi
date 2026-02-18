@@ -219,9 +219,26 @@ function build_get_items_dialog(frm, pending_items, pack_sizes, bag_cost_map) {
 		pack_options_html += '<option value="' + ps.pack_size + '">' + ps.pack_size + ' (' + ps.weight_kg + ' KG)</option>';
 	});
 
+	// Collect existing deal-linked items from child table (for edit mode)
+	let existing_map = {};
+	(frm.doc.items || []).forEach(function(row) {
+		if (row.soda && row.deal_item) {
+			if (!existing_map[row.deal_item]) existing_map[row.deal_item] = [];
+			existing_map[row.deal_item].push({
+				pack_size: row.pack_size,
+				pack_weight_kg: flt(row.pack_weight_kg),
+				deliver_qty: flt(row.deliver_qty),
+				bag_cost: flt(row.bag_cost),
+				rate: flt(row.rate)
+			});
+		}
+	});
+	let has_existing = Object.keys(existing_map).length > 0;
+
 	// Build row state from pending items
 	let rows = [];
-	pending_items.forEach(function(p, i) {
+	let row_idx = 0;
+	pending_items.forEach(function(p) {
 		let bc = flt(bag_cost_map[p.item + ':' + p.pack_size]);
 
 		// Derive price_per_kg from rate if not stored
@@ -230,29 +247,91 @@ function build_get_items_dialog(frm, pending_items, pack_sizes, bag_cost_map) {
 			ppk = (flt(p.rate) - bc) / flt(p.pack_weight_kg);
 		}
 
-		rows.push({
-			idx: i,
-			deal_name: p.deal_name,
-			deal_item_name: p.deal_item_name,
-			soda_date: p.soda_date,
-			customer_name: p.customer_name,
-			item: p.item,
-			item_name: p.item_name,
-			original_pack_size: p.pack_size,
-			original_pack_weight_kg: flt(p.pack_weight_kg),
-			pack_size: p.pack_size,
-			pack_weight_kg: flt(p.pack_weight_kg),
-			qty: flt(p.qty),
-			already_delivered: flt(p.already_delivered),
-			pending_qty: flt(p.pending_qty),
-			pending_kg: flt(p.pending_kg),
-			price_per_kg: ppk,
-			base_price_50kg: flt(p.base_price_50kg),
-			deliver_qty: flt(p.pending_qty),
-			bag_cost: bc,
-			rate: flt(p.rate),
-			checked: true
-		});
+		let ex_list = existing_map[p.deal_item_name];
+
+		if (ex_list && ex_list.length > 0) {
+			// Edit mode: pre-load from existing child table rows
+			let first = ex_list[0];
+			let first_bc = flt(bag_cost_map[p.item + ':' + first.pack_size]);
+			rows.push({
+				idx: row_idx++,
+				deal_name: p.deal_name,
+				deal_item_name: p.deal_item_name,
+				soda_date: p.soda_date,
+				customer_name: p.customer_name,
+				item: p.item,
+				item_name: p.item_name,
+				original_pack_size: p.pack_size,
+				original_pack_weight_kg: flt(p.pack_weight_kg),
+				pack_size: first.pack_size,
+				pack_weight_kg: first.pack_weight_kg,
+				qty: flt(p.qty),
+				already_delivered: flt(p.already_delivered),
+				pending_qty: flt(p.pending_qty),
+				pending_kg: flt(p.pending_kg),
+				price_per_kg: ppk,
+				base_price_50kg: flt(p.base_price_50kg),
+				deliver_qty: first.deliver_qty,
+				bag_cost: first_bc,
+				rate: first.rate,
+				checked: true
+			});
+
+			// Add split rows for additional existing entries
+			for (let i = 1; i < ex_list.length; i++) {
+				let split = ex_list[i];
+				let split_bc = flt(bag_cost_map[p.item + ':' + split.pack_size]);
+				rows.push({
+					idx: row_idx++,
+					deal_name: p.deal_name,
+					deal_item_name: p.deal_item_name,
+					soda_date: p.soda_date,
+					customer_name: p.customer_name,
+					item: p.item,
+					item_name: p.item_name,
+					original_pack_size: p.pack_size,
+					original_pack_weight_kg: flt(p.pack_weight_kg),
+					pack_size: split.pack_size,
+					pack_weight_kg: split.pack_weight_kg,
+					qty: flt(p.qty),
+					already_delivered: flt(p.already_delivered),
+					pending_qty: flt(p.pending_qty),
+					pending_kg: flt(p.pending_kg),
+					price_per_kg: ppk,
+					base_price_50kg: flt(p.base_price_50kg),
+					deliver_qty: split.deliver_qty,
+					bag_cost: split_bc,
+					rate: split.rate,
+					checked: true,
+					is_split: true
+				});
+			}
+		} else {
+			// No existing match: if editing, uncheck; if fresh, check with full qty
+			rows.push({
+				idx: row_idx++,
+				deal_name: p.deal_name,
+				deal_item_name: p.deal_item_name,
+				soda_date: p.soda_date,
+				customer_name: p.customer_name,
+				item: p.item,
+				item_name: p.item_name,
+				original_pack_size: p.pack_size,
+				original_pack_weight_kg: flt(p.pack_weight_kg),
+				pack_size: p.pack_size,
+				pack_weight_kg: flt(p.pack_weight_kg),
+				qty: flt(p.qty),
+				already_delivered: flt(p.already_delivered),
+				pending_qty: flt(p.pending_qty),
+				pending_kg: flt(p.pending_kg),
+				price_per_kg: ppk,
+				base_price_50kg: flt(p.base_price_50kg),
+				deliver_qty: has_existing ? 0 : flt(p.pending_qty),
+				bag_cost: bc,
+				rate: flt(p.rate),
+				checked: !has_existing
+			});
+		}
 	});
 
 	let d = new frappe.ui.Dialog({
@@ -283,8 +362,13 @@ function build_get_items_dialog(frm, pending_items, pack_sizes, bag_cost_map) {
 		let html = '';
 
 		// Info bar
-		html += '<div style="font-size:11px;color:#718096;padding:6px 10px;margin-bottom:10px;background:#f0fff4;border-left:3px solid #38a169;border-radius:4px;">'
-			+ 'All items pre-selected with full pending qty. Change <b>Pack Size</b> if loading different packs. Adjust <b>Deliver Qty</b> as needed.</div>';
+		if (has_existing) {
+			html += '<div style="font-size:11px;color:#718096;padding:6px 10px;margin-bottom:10px;background:#fffbeb;border-left:3px solid #f59e0b;border-radius:4px;">'
+				+ 'Editing existing items. Your previous selections are pre-loaded. Modify as needed and click <b>Add to Delivery</b> to save changes.</div>';
+		} else {
+			html += '<div style="font-size:11px;color:#718096;padding:6px 10px;margin-bottom:10px;background:#f0fff4;border-left:3px solid #38a169;border-radius:4px;">'
+				+ 'All items pre-selected with full pending qty. Change <b>Pack Size</b> if loading different packs. Adjust <b>Deliver Qty</b> as needed.</div>';
+		}
 
 		// Table
 		html += '<div style="max-height:380px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:6px;">';
