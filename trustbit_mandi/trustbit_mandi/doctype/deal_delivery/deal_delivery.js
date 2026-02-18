@@ -301,13 +301,15 @@ function build_get_items_dialog(frm, pending_items, pack_sizes, bag_cost_map) {
 		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;width:75px;">DELIVER QTY</th>';
 		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;">RATE</th>';
 		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;">AMOUNT</th>';
+		html += '<th style="width:30px;padding:7px 3px;font-size:10px;"></th>';
 		html += '</tr></thead><tbody>';
 
 		rows.forEach(function(row) {
 			let amount = flt(row.deliver_qty) * flt(row.rate);
-			let pack_changed = row.pack_size !== row.original_pack_size;
+			let pack_changed = row.pack_size && row.pack_size !== row.original_pack_size;
 			let row_bg = '';
-			if (row.checked && pack_changed) row_bg = 'background:#fffff0;';
+			if (row.is_split) row_bg = 'background:#faf5ff;';
+			else if (row.checked && pack_changed) row_bg = 'background:#fffff0;';
 			else if (row.checked) row_bg = 'background:#f0fff4;';
 
 			html += '<tr style="' + row_bg + '" data-idx="' + row.idx + '">';
@@ -319,23 +321,38 @@ function build_get_items_dialog(frm, pending_items, pack_sizes, bag_cost_map) {
 				+ '</td>';
 
 			// Deal
-			html += '<td style="vertical-align:middle;padding:5px;font-size:11px;">'
-				+ '<span style="font-weight:600;color:#2b6cb0;">' + row.deal_name + '</span>'
-				+ '<br><span style="color:#a0aec0;font-size:10px;">' + frappe.datetime.str_to_user(row.soda_date) + '</span>'
-				+ '</td>';
+			if (row.is_split) {
+				html += '<td style="vertical-align:middle;padding:5px;font-size:10px;color:#a0aec0;">'
+					+ '↳ split</td>';
+			} else {
+				html += '<td style="vertical-align:middle;padding:5px;font-size:11px;">'
+					+ '<span style="font-weight:600;color:#2b6cb0;">' + row.deal_name + '</span>'
+					+ '<br><span style="color:#a0aec0;font-size:10px;">' + frappe.datetime.str_to_user(row.soda_date) + '</span>'
+					+ '</td>';
+			}
 
 			// Item
-			html += '<td style="vertical-align:middle;padding:5px;font-weight:500;">'
+			html += '<td style="vertical-align:middle;padding:5px;font-weight:500;' + (row.is_split ? 'color:#a0aec0;' : '') + '">'
 				+ (row.item_name || row.item) + '</td>';
 
-			// Pending Quintal
-			html += '<td style="text-align:right;vertical-align:middle;padding:5px;font-weight:600;color:#805ad5;">'
-				+ row.pending_quintal.toFixed(2) + '</td>';
+			// Pending Quintal — show remaining for this deal_item group
+			let sibling_qtl = get_sibling_quintal(rows, row);
+			let remaining_qtl = flt(row.pending_quintal) - sibling_qtl;
+			if (row.is_split) {
+				html += '<td style="text-align:right;vertical-align:middle;padding:5px;color:#a0aec0;font-size:11px;">'
+					+ remaining_qtl.toFixed(2) + ' left</td>';
+			} else {
+				html += '<td style="text-align:right;vertical-align:middle;padding:5px;font-weight:600;color:#805ad5;">'
+					+ row.pending_quintal.toFixed(2) + '</td>';
+			}
 
 			// Pack Size (dropdown)
 			let pack_select = '<select class="pack-select" data-idx="' + row.idx + '" '
 				+ 'style="padding:4px 5px;border:1px solid ' + (pack_changed ? '#d69e2e' : '#cbd5e0') + ';border-radius:4px;font-size:11.5px;min-width:90px;'
 				+ (pack_changed ? 'font-weight:600;background:#fffff0;' : '') + '">';
+			if (row.is_split && !row.pack_size) {
+				pack_select += '<option value="" selected>-- Select --</option>';
+			}
 			pack_sizes.forEach(function(ps) {
 				pack_select += '<option value="' + ps.pack_size + '"'
 					+ (row.pack_size === ps.pack_size ? ' selected' : '') + '>'
@@ -343,7 +360,7 @@ function build_get_items_dialog(frm, pending_items, pack_sizes, bag_cost_map) {
 			});
 			pack_select += '</select>';
 			html += '<td style="vertical-align:middle;padding:5px;">' + pack_select;
-			if (pack_changed) {
+			if (pack_changed && !row.is_split) {
 				html += '<br><span style="font-size:9px;color:#a0aec0;">was: ' + row.original_pack_size + '</span>';
 			}
 			html += '</td>';
@@ -371,6 +388,19 @@ function build_get_items_dialog(frm, pending_items, pack_sizes, bag_cost_map) {
 			html += '<td style="text-align:right;vertical-align:middle;padding:5px;'
 				+ (amount > 0 ? 'font-weight:600;' : 'color:#718096;') + 'font-size:12px;">'
 				+ (amount > 0 ? format_number(amount) : '--') + '</td>';
+
+			// Split +/- button
+			if (row.is_split) {
+				html += '<td style="text-align:center;vertical-align:middle;padding:3px;">'
+					+ '<button class="split-remove" data-idx="' + row.idx + '" '
+					+ 'style="padding:1px 6px;font-size:16px;color:#e53e3e;border:none;background:none;cursor:pointer;font-weight:bold;" title="Remove split">&minus;</button>'
+					+ '</td>';
+			} else {
+				html += '<td style="text-align:center;vertical-align:middle;padding:3px;">'
+					+ '<button class="split-add" data-idx="' + row.idx + '" '
+					+ 'style="padding:1px 6px;font-size:16px;color:#38a169;border:none;background:none;cursor:pointer;font-weight:bold;" title="Add another pack size">+</button>'
+					+ '</td>';
+			}
 
 			html += '</tr>';
 		});
@@ -409,8 +439,7 @@ function bind_get_items_events(wrapper, rows, pack_weight_map, bag_cost_map, ren
 			if (!row.checked) {
 				row.deliver_qty = 0;
 			} else {
-				// Recalculate deliver_qty for current pack size
-				row.deliver_qty = calc_deliver_packs(row);
+				row.deliver_qty = calc_deliver_packs_remaining(rows, row);
 			}
 			render_table();
 		}
@@ -430,8 +459,8 @@ function bind_get_items_events(wrapper, rows, pack_weight_map, bag_cost_map, ren
 			row.bag_cost = bc;
 			row.rate = (flt(row.price_per_kg) * flt(row.pack_weight_kg)) + bc;
 
-			// Auto-convert deliver_qty to match pending quintal
-			row.deliver_qty = calc_deliver_packs(row);
+			// Auto-convert deliver_qty to match remaining quintal
+			row.deliver_qty = calc_deliver_packs_remaining(rows, row);
 
 			// Auto-check
 			if (!row.checked) row.checked = true;
@@ -447,14 +476,18 @@ function bind_get_items_events(wrapper, rows, pack_weight_map, bag_cost_map, ren
 		if (row) {
 			if (val < 0) val = 0;
 
-			// Validate in quintal
+			// Validate in quintal — account for sibling rows (same deal_item)
+			let sibling_qtl = get_sibling_quintal(rows, row);
+			let available_qtl = flt(row.pending_quintal) - sibling_qtl;
 			let delivering_qtl = (val * flt(row.pack_weight_kg)) / 100;
-			if (delivering_qtl > flt(row.pending_quintal) + 0.01) {
-				let max_packs = calc_deliver_packs(row);
+
+			if (delivering_qtl > available_qtl + 0.01) {
+				let max_packs = Math.floor(available_qtl * 100 / flt(row.pack_weight_kg));
+				if (max_packs < 0) max_packs = 0;
 				val = max_packs;
 				$(this).val(val);
 				frappe.show_alert({
-					message: __('Cannot exceed pending {0} Qtl', [row.pending_quintal.toFixed(2)]),
+					message: __('Cannot exceed remaining {0} Qtl for this deal item', [available_qtl.toFixed(2)]),
 					indicator: 'orange'
 				}, 3);
 			}
@@ -463,6 +496,46 @@ function bind_get_items_events(wrapper, rows, pack_weight_map, bag_cost_map, ren
 			render_table();
 		}
 	});
+
+	// Split: add another pack size row
+	wrapper.find('.split-add').off('click').on('click', function() {
+		let idx = parseInt($(this).data('idx'));
+		let source = rows[idx];
+		let new_row = {
+			deal_name: source.deal_name,
+			deal_item_name: source.deal_item_name,
+			soda_date: source.soda_date,
+			customer_name: source.customer_name,
+			item: source.item,
+			item_name: source.item_name,
+			original_pack_size: source.original_pack_size,
+			original_pack_weight_kg: source.original_pack_weight_kg,
+			pack_size: '',
+			pack_weight_kg: 0,
+			qty: source.qty,
+			already_delivered: source.already_delivered,
+			pending_qty: source.pending_qty,
+			pending_quintal: source.pending_quintal,
+			price_per_kg: source.price_per_kg,
+			base_price_50kg: source.base_price_50kg,
+			deliver_qty: 0,
+			bag_cost: 0,
+			rate: 0,
+			checked: true,
+			is_split: true
+		};
+		rows.splice(idx + 1, 0, new_row);
+		reindex_rows(rows);
+		render_table();
+	});
+
+	// Split: remove row
+	wrapper.find('.split-remove').off('click').on('click', function() {
+		let idx = parseInt($(this).data('idx'));
+		rows.splice(idx, 1);
+		reindex_rows(rows);
+		render_table();
+	});
 }
 
 
@@ -470,6 +543,33 @@ function calc_deliver_packs(row) {
 	/**Convert pending quintal to packs for current pack size.*/
 	if (flt(row.pack_weight_kg) <= 0) return 0;
 	return Math.floor(flt(row.pending_quintal) * 100 / flt(row.pack_weight_kg));
+}
+
+
+function calc_deliver_packs_remaining(rows, row) {
+	/**Convert remaining quintal (after siblings) to packs for current pack size.*/
+	if (flt(row.pack_weight_kg) <= 0) return 0;
+	let sibling_qtl = get_sibling_quintal(rows, row);
+	let remaining_qtl = flt(row.pending_quintal) - sibling_qtl;
+	if (remaining_qtl <= 0) return 0;
+	return Math.floor(remaining_qtl * 100 / flt(row.pack_weight_kg));
+}
+
+
+function get_sibling_quintal(rows, current_row) {
+	/**Get total quintal being delivered by sibling rows (same deal_item, excluding current row).*/
+	let total = 0;
+	rows.forEach(function(r) {
+		if (r !== current_row && r.deal_item_name === current_row.deal_item_name && r.checked) {
+			total += (flt(r.deliver_qty) * flt(r.pack_weight_kg)) / 100;
+		}
+	});
+	return total;
+}
+
+
+function reindex_rows(rows) {
+	rows.forEach(function(r, i) { r.idx = i; });
 }
 
 
