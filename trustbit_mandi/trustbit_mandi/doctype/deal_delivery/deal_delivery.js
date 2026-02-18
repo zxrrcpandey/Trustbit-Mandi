@@ -339,7 +339,7 @@ function build_get_items_dialog(frm, pending_items, pack_sizes, bag_cost_map) {
 			let sibling_qtl = get_sibling_quintal(rows, row);
 			let remaining_qtl = flt(row.pending_quintal) - sibling_qtl;
 			if (row.is_split) {
-				html += '<td style="text-align:right;vertical-align:middle;padding:5px;color:#a0aec0;font-size:11px;">'
+				html += '<td class="remaining-cell" data-row-idx="' + row.idx + '" style="text-align:right;vertical-align:middle;padding:5px;color:#a0aec0;font-size:11px;">'
 					+ remaining_qtl.toFixed(2) + ' left</td>';
 			} else {
 				html += '<td style="text-align:right;vertical-align:middle;padding:5px;font-weight:600;color:#805ad5;">'
@@ -385,7 +385,7 @@ function build_get_items_dialog(frm, pending_items, pack_sizes, bag_cost_map) {
 				+ format_number(row.rate) + '</td>';
 
 			// Amount
-			html += '<td style="text-align:right;vertical-align:middle;padding:5px;'
+			html += '<td class="amount-cell" data-row-idx="' + row.idx + '" style="text-align:right;vertical-align:middle;padding:5px;'
 				+ (amount > 0 ? 'font-weight:600;' : 'color:#718096;') + 'font-size:12px;">'
 				+ (amount > 0 ? format_number(amount) : '--') + '</td>';
 
@@ -410,7 +410,7 @@ function build_get_items_dialog(frm, pending_items, pack_sizes, bag_cost_map) {
 		// Footer summary
 		let summary = get_dialog_summary(rows);
 		html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:8px 0;">';
-		html += '<div style="display:flex;gap:20px;font-size:12.5px;color:#4a5568;">';
+		html += '<div class="dialog-footer-summary" style="display:flex;gap:20px;font-size:12.5px;color:#4a5568;">';
 		html += '<div>Selected: <strong>' + summary.selected + '</strong> of ' + rows.length + '</div>';
 		html += '<div>Deliver: <strong>' + summary.total_qty + '</strong> packs</div>';
 		html += '<div>Quintal: <strong>' + summary.total_quintal.toFixed(2) + '</strong></div>';
@@ -468,7 +468,43 @@ function bind_get_items_events(wrapper, rows, pack_weight_map, bag_cost_map, ren
 		}
 	});
 
-	// Deliver qty input
+	// Deliver qty — real-time update (no re-render, keeps focus)
+	wrapper.find('.deliver-input').off('input').on('input', function() {
+		let idx = parseInt($(this).data('idx'));
+		let val = parseFloat($(this).val()) || 0;
+		let row = rows[idx];
+		if (!row) return;
+		row.deliver_qty = Math.max(0, val);
+		if (val > 0) row.checked = true;
+
+		// Update amount cell for this row
+		let amount = flt(row.deliver_qty) * flt(row.rate);
+		let $amt = wrapper.find('.amount-cell[data-row-idx="' + idx + '"]');
+		$amt.html(amount > 0 ? format_number(amount) : '--');
+		$amt.css({'font-weight': amount > 0 ? '600' : '', 'color': amount > 0 ? '' : '#718096'});
+
+		// Update remaining cells for ALL sibling split rows (same deal_item)
+		rows.forEach(function(r) {
+			if (r.deal_item_name === row.deal_item_name && r.is_split) {
+				let sib = get_sibling_quintal(rows, r);
+				let rem = flt(r.pending_quintal) - sib;
+				let $cell = wrapper.find('.remaining-cell[data-row-idx="' + r.idx + '"]');
+				$cell.text(rem.toFixed(2) + ' left');
+				$cell.css('color', rem < 0.01 ? '#e53e3e' : '#a0aec0');
+			}
+		});
+
+		// Update footer summary
+		let summary = get_dialog_summary(rows);
+		wrapper.find('.dialog-footer-summary').html(
+			'<div>Selected: <strong>' + summary.selected + '</strong> of ' + rows.length + '</div>'
+			+ '<div>Deliver: <strong>' + summary.total_qty + '</strong> packs</div>'
+			+ '<div>Quintal: <strong>' + summary.total_quintal.toFixed(2) + '</strong></div>'
+			+ '<div>Amount: <strong>&#8377; ' + format_number(summary.total_amount) + '</strong></div>'
+		);
+	});
+
+	// Deliver qty — validation on blur (with re-render)
 	wrapper.find('.deliver-input').off('change').on('change', function() {
 		let idx = parseInt($(this).data('idx'));
 		let val = parseFloat($(this).val()) || 0;
