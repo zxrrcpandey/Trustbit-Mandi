@@ -6,3 +6,4 @@
 # Patches added in this section will be executed after doctypes are migrated
 trustbit_mandi.patches.v1_1.migrate_deal_to_multi_item
 trustbit_mandi.patches.v1_1.recalculate_deal_kg
+trustbit_mandi.patches.v1_1.fix_deal_item_status_after_kg
