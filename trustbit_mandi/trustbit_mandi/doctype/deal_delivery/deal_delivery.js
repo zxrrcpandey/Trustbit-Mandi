@@ -223,6 +223,13 @@ function build_get_items_dialog(frm, pending_items, pack_sizes, bag_cost_map) {
 	let rows = [];
 	pending_items.forEach(function(p, i) {
 		let bc = flt(bag_cost_map[p.item + ':' + p.pack_size]);
+
+		// Derive price_per_kg from rate if not stored
+		let ppk = flt(p.price_per_kg);
+		if (ppk <= 0 && flt(p.rate) > 0 && flt(p.pack_weight_kg) > 0) {
+			ppk = (flt(p.rate) - bc) / flt(p.pack_weight_kg);
+		}
+
 		rows.push({
 			idx: i,
 			deal_name: p.deal_name,
@@ -239,7 +246,7 @@ function build_get_items_dialog(frm, pending_items, pack_sizes, bag_cost_map) {
 			already_delivered: flt(p.already_delivered),
 			pending_qty: flt(p.pending_qty),
 			pending_quintal: flt(p.pending_quintal),
-			price_per_kg: flt(p.price_per_kg),
+			price_per_kg: ppk,
 			base_price_50kg: flt(p.base_price_50kg),
 			deliver_qty: flt(p.pending_qty),
 			bag_cost: bc,
