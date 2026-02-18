@@ -468,13 +468,31 @@ function bind_get_items_events(wrapper, rows, pack_weight_map, bag_cost_map, ren
 		}
 	});
 
-	// Deliver qty — real-time update (no re-render, keeps focus)
+	// Deliver qty — real-time update with validation (caps immediately)
 	wrapper.find('.deliver-input').off('input').on('input', function() {
 		let idx = parseInt($(this).data('idx'));
 		let val = parseFloat($(this).val()) || 0;
 		let row = rows[idx];
 		if (!row) return;
-		row.deliver_qty = Math.max(0, val);
+		if (val < 0) val = 0;
+
+		// Cap in quintal — account for sibling rows (same deal_item)
+		let sibling_qtl = get_sibling_quintal(rows, row);
+		let available_qtl = flt(row.pending_quintal) - sibling_qtl;
+		let delivering_qtl = (val * flt(row.pack_weight_kg)) / 100;
+
+		if (flt(row.pack_weight_kg) > 0 && delivering_qtl > available_qtl + 0.01) {
+			let max_packs = Math.floor(available_qtl * 100 / flt(row.pack_weight_kg));
+			if (max_packs < 0) max_packs = 0;
+			val = max_packs;
+			$(this).val(val);
+			frappe.show_alert({
+				message: __('Max {0} packs ({1} Qtl available)', [max_packs, available_qtl.toFixed(2)]),
+				indicator: 'orange'
+			}, 3);
+		}
+
+		row.deliver_qty = val;
 		if (val > 0) row.checked = true;
 
 		// Update amount cell for this row
@@ -504,33 +522,9 @@ function bind_get_items_events(wrapper, rows, pack_weight_map, bag_cost_map, ren
 		);
 	});
 
-	// Deliver qty — validation on blur (with re-render)
+	// Deliver qty — re-render on blur for clean state
 	wrapper.find('.deliver-input').off('change').on('change', function() {
-		let idx = parseInt($(this).data('idx'));
-		let val = parseFloat($(this).val()) || 0;
-		let row = rows[idx];
-		if (row) {
-			if (val < 0) val = 0;
-
-			// Validate in quintal — account for sibling rows (same deal_item)
-			let sibling_qtl = get_sibling_quintal(rows, row);
-			let available_qtl = flt(row.pending_quintal) - sibling_qtl;
-			let delivering_qtl = (val * flt(row.pack_weight_kg)) / 100;
-
-			if (delivering_qtl > available_qtl + 0.01) {
-				let max_packs = Math.floor(available_qtl * 100 / flt(row.pack_weight_kg));
-				if (max_packs < 0) max_packs = 0;
-				val = max_packs;
-				$(this).val(val);
-				frappe.show_alert({
-					message: __('Cannot exceed remaining {0} Qtl for this deal item', [available_qtl.toFixed(2)]),
-					indicator: 'orange'
-				}, 3);
-			}
-			row.deliver_qty = val;
-			if (val > 0 && !row.checked) row.checked = true;
-			render_table();
-		}
+		render_table();
 	});
 
 	// Split: add another pack size row
