@@ -49,6 +49,12 @@ frappe.ui.form.on('Deal Delivery Item', {
 					frappe.model.set_value(cdt, cdn, 'pack_weight_kg', flt(r.weight_kg));
 				}
 			});
+			// Fetch bag cost from Package Bag Master
+			if (row.item) {
+				frappe.db.get_value('Package Bag Master', {item: row.item, pack_size: row.pack_size, is_active: 1}, 'bag_cost', function(r) {
+					frappe.model.set_value(cdt, cdn, 'bag_cost', r ? flt(r.bag_cost) : 0);
+				});
+			}
 		}
 	}
 });
@@ -216,6 +222,7 @@ function build_get_items_dialog(frm, pending_items, pack_sizes, bag_cost_map) {
 	// Build row state from pending items
 	let rows = [];
 	pending_items.forEach(function(p, i) {
+		let bc = flt(bag_cost_map[p.item + ':' + p.pack_size]);
 		rows.push({
 			idx: i,
 			deal_name: p.deal_name,
@@ -235,6 +242,7 @@ function build_get_items_dialog(frm, pending_items, pack_sizes, bag_cost_map) {
 			price_per_kg: flt(p.price_per_kg),
 			base_price_50kg: flt(p.base_price_50kg),
 			deliver_qty: flt(p.pending_qty),
+			bag_cost: bc,
 			rate: flt(p.rate),
 			checked: true
 		});
@@ -282,6 +290,7 @@ function build_get_items_dialog(frm, pending_items, pack_sizes, bag_cost_map) {
 		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;">PENDING QTL</th>';
 		html += '<th style="padding:7px 5px;font-size:10px;">PACK SIZE</th>';
 		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;">WT</th>';
+		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;">BAG COST</th>';
 		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;width:75px;">DELIVER QTY</th>';
 		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;">RATE</th>';
 		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;">AMOUNT</th>';
@@ -335,6 +344,10 @@ function build_get_items_dialog(frm, pending_items, pack_sizes, bag_cost_map) {
 			// Weight
 			html += '<td style="text-align:right;vertical-align:middle;padding:5px;color:#718096;font-size:11px;">'
 				+ row.pack_weight_kg + '</td>';
+
+			// Bag Cost
+			html += '<td style="text-align:right;vertical-align:middle;padding:5px;color:#718096;font-size:11px;">'
+				+ (flt(row.bag_cost) > 0 ? format_number(row.bag_cost) : '--') + '</td>';
 
 			// Deliver Qty (editable)
 			html += '<td style="text-align:right;vertical-align:middle;padding:5px;">'
@@ -405,8 +418,9 @@ function bind_get_items_events(wrapper, rows, pack_weight_map, bag_cost_map, ren
 			row.pack_size = new_pack;
 			row.pack_weight_kg = pack_weight_map[new_pack] || 0;
 
-			// Recalculate rate for new pack size
+			// Recalculate rate and bag cost for new pack size
 			let bc = flt(bag_cost_map[row.item + ':' + new_pack]);
+			row.bag_cost = bc;
 			row.rate = (flt(row.price_per_kg) * flt(row.pack_weight_kg)) + bc;
 
 			// Auto-convert deliver_qty to match pending quintal
@@ -493,6 +507,7 @@ function add_selected_to_delivery(frm, rows, dialog) {
 			already_delivered: row.already_delivered,
 			pending_qty: row.pending_qty,
 			deliver_qty: row.deliver_qty,
+			bag_cost: row.bag_cost,
 			rate: row.rate,
 			amount: flt(row.deliver_qty) * flt(row.rate)
 		});
@@ -518,6 +533,7 @@ function add_selected_to_delivery(frm, rows, dialog) {
 		child.already_delivered = item.already_delivered;
 		child.pending_qty = item.pending_qty;
 		child.deliver_qty = item.deliver_qty;
+		child.bag_cost = item.bag_cost;
 		child.rate = item.rate;
 		child.amount = item.amount;
 		child.is_extra = 0;
@@ -569,6 +585,13 @@ function show_add_extra_dialog(frm) {
 				label: __('Pack Weight (KG)'),
 				read_only: 1
 			},
+			{
+				fieldname: 'bag_cost',
+				fieldtype: 'Currency',
+				label: __('Bag Cost'),
+				read_only: 1,
+				default: 0
+			},
 			{ fieldtype: 'Column Break' },
 			{
 				fieldname: 'deliver_qty',
@@ -615,6 +638,7 @@ function show_add_extra_dialog(frm) {
 			child.pack_size = values.pack_size;
 			child.pack_weight_kg = values.pack_weight_kg || 0;
 			child.deliver_qty = values.deliver_qty;
+			child.bag_cost = values.bag_cost || 0;
 			child.rate = values.rate;
 			child.amount = flt(values.deliver_qty) * flt(values.rate);
 			child.is_extra = 1;
@@ -634,12 +658,30 @@ function show_add_extra_dialog(frm) {
 		}
 	});
 
-	// Fetch weight when pack_size changes
+	// Fetch weight and bag cost when pack_size changes
 	d.fields_dict.pack_size.df.onchange = function() {
 		let ps = d.get_value('pack_size');
+		let item = d.get_value('item');
 		if (ps) {
 			frappe.db.get_value('Deal Pack Size', ps, 'weight_kg', function(r) {
 				if (r) d.set_value('pack_weight_kg', flt(r.weight_kg));
+			});
+			// Fetch bag cost if item is also set
+			if (item) {
+				frappe.db.get_value('Package Bag Master', {item: item, pack_size: ps, is_active: 1}, 'bag_cost', function(r) {
+					d.set_value('bag_cost', r ? flt(r.bag_cost) : 0);
+				});
+			}
+		}
+	};
+
+	// Also fetch bag cost when item changes (if pack_size already set)
+	d.fields_dict.item.df.onchange = function() {
+		let item = d.get_value('item');
+		let ps = d.get_value('pack_size');
+		if (item && ps) {
+			frappe.db.get_value('Package Bag Master', {item: item, pack_size: ps, is_active: 1}, 'bag_cost', function(r) {
+				d.set_value('bag_cost', r ? flt(r.bag_cost) : 0);
 			});
 		}
 	};
