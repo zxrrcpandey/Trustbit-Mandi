@@ -91,7 +91,7 @@ function render_pending_summary(frm) {
 
 			let rows = r.message;
 			let total_deal_qty = 0, total_delivered = 0, total_pending = 0;
-			let total_booked_qtl = 0, total_delivered_qtl = 0, total_pending_qtl = 0;
+			let total_booked_kg = 0, total_delivered_kg = 0, total_pending_kg = 0;
 			let total_amount = 0;
 
 			let html = '<div style="max-height:300px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:6px;">';
@@ -106,7 +106,7 @@ function render_pending_summary(frm) {
 			html += '<th style="text-align:right;padding:6px 8px;font-size:11px;">DEAL QTY</th>';
 			html += '<th style="text-align:right;padding:6px 8px;font-size:11px;">DELIVERED</th>';
 			html += '<th style="text-align:right;padding:6px 8px;font-size:11px;">PENDING</th>';
-			html += '<th style="text-align:right;padding:6px 8px;font-size:11px;">PENDING QTL</th>';
+			html += '<th style="text-align:right;padding:6px 8px;font-size:11px;">PENDING KG</th>';
 			html += '<th style="text-align:right;padding:6px 8px;font-size:11px;">RATE</th>';
 			html += '</tr></thead><tbody>';
 
@@ -115,14 +115,14 @@ function render_pending_summary(frm) {
 				let delivered = flt(s.already_delivered);
 				let pending = flt(s.pending_qty);
 				let wt = flt(s.pack_weight_kg);
-				let pending_qtl = flt(s.pending_quintal);
+				let pending_kg = flt(s.pending_kg);
 
 				total_deal_qty += deal_qty;
 				total_delivered += delivered;
 				total_pending += pending;
-				total_booked_qtl += flt(s.booked_quintal);
-				total_delivered_qtl += flt(s.delivered_quintal);
-				total_pending_qtl += pending_qtl;
+				total_booked_kg += flt(s.booked_kg);
+				total_delivered_kg += flt(s.delivered_kg);
+				total_pending_kg += pending_kg;
 				total_amount += pending * flt(s.rate);
 
 				html += '<tr>';
@@ -134,7 +134,7 @@ function render_pending_summary(frm) {
 				html += '<td style="text-align:right;padding:5px 8px;">' + deal_qty + '</td>';
 				html += '<td style="text-align:right;padding:5px 8px;color:#718096;">' + delivered + '</td>';
 				html += '<td style="text-align:right;padding:5px 8px;font-weight:600;color:' + (pending > 0 ? '#e53e3e' : '#38a169') + ';">' + pending + '</td>';
-				html += '<td style="text-align:right;padding:5px 8px;font-weight:600;color:#805ad5;">' + pending_qtl.toFixed(2) + '</td>';
+				html += '<td style="text-align:right;padding:5px 8px;font-weight:600;color:#805ad5;">' + pending_kg.toFixed(2) + '</td>';
 				html += '<td style="text-align:right;padding:5px 8px;">' + format_number(s.rate) + '</td>';
 				html += '</tr>';
 			});
@@ -150,10 +150,10 @@ function render_pending_summary(frm) {
 			html += '<td style="text-align:right;padding:6px 8px;">&#8377; ' + format_number(total_amount) + '</td>';
 			html += '</tr>';
 			html += '<tr style="background:#edf2f7;">';
-			html += '<td colspan="5" style="padding:6px 8px;">Total (Quintal)</td>';
-			html += '<td style="text-align:right;padding:6px 8px;">' + total_booked_qtl.toFixed(2) + '</td>';
-			html += '<td style="text-align:right;padding:6px 8px;">' + total_delivered_qtl.toFixed(2) + '</td>';
-			html += '<td style="text-align:right;padding:6px 8px;color:#e53e3e;">' + total_pending_qtl.toFixed(2) + '</td>';
+			html += '<td colspan="5" style="padding:6px 8px;">Total (KG)</td>';
+			html += '<td style="text-align:right;padding:6px 8px;">' + total_booked_kg.toFixed(2) + '</td>';
+			html += '<td style="text-align:right;padding:6px 8px;">' + total_delivered_kg.toFixed(2) + '</td>';
+			html += '<td style="text-align:right;padding:6px 8px;color:#e53e3e;">' + total_pending_kg.toFixed(2) + '</td>';
 			html += '<td></td><td></td>';
 			html += '</tr></tfoot>';
 			html += '</table></div>';
@@ -245,7 +245,7 @@ function build_get_items_dialog(frm, pending_items, pack_sizes, bag_cost_map) {
 			qty: flt(p.qty),
 			already_delivered: flt(p.already_delivered),
 			pending_qty: flt(p.pending_qty),
-			pending_quintal: flt(p.pending_quintal),
+			pending_kg: flt(p.pending_kg),
 			price_per_kg: ppk,
 			base_price_50kg: flt(p.base_price_50kg),
 			deliver_qty: flt(p.pending_qty),
@@ -294,7 +294,7 @@ function build_get_items_dialog(frm, pending_items, pack_sizes, bag_cost_map) {
 		html += '<th style="width:30px;text-align:center;padding:7px 3px;font-size:10px;">SEL</th>';
 		html += '<th style="padding:7px 5px;font-size:10px;">DEAL</th>';
 		html += '<th style="padding:7px 5px;font-size:10px;">ITEM</th>';
-		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;">PENDING QTL</th>';
+		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;">PENDING KG</th>';
 		html += '<th style="padding:7px 5px;font-size:10px;">PACK SIZE</th>';
 		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;">WT</th>';
 		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;">BAG COST</th>';
@@ -323,7 +323,7 @@ function build_get_items_dialog(frm, pending_items, pack_sizes, bag_cost_map) {
 			// Deal
 			if (row.is_split) {
 				html += '<td style="vertical-align:middle;padding:5px;font-size:10px;color:#a0aec0;">'
-					+ '↳ split</td>';
+					+ '&#8627; split</td>';
 			} else {
 				html += '<td style="vertical-align:middle;padding:5px;font-size:11px;">'
 					+ '<span style="font-weight:600;color:#2b6cb0;">' + row.deal_name + '</span>'
@@ -335,22 +335,22 @@ function build_get_items_dialog(frm, pending_items, pack_sizes, bag_cost_map) {
 			html += '<td style="vertical-align:middle;padding:5px;font-weight:500;' + (row.is_split ? 'color:#a0aec0;' : '') + '">'
 				+ (row.item_name || row.item) + '</td>';
 
-			// Pending Quintal — show remaining for this deal_item group
-			let sibling_qtl = get_sibling_quintal(rows, row);
-			let remaining_qtl = flt(row.pending_quintal) - sibling_qtl;
+			// Pending KG — show remaining for this deal_item group
+			let sibling_kg = get_sibling_kg(rows, row);
+			let remaining_kg = flt(row.pending_kg) - sibling_kg;
 			let has_siblings = rows.some(function(r) {
 				return r !== row && r.deal_item_name === row.deal_item_name;
 			});
 			if (row.is_split) {
 				html += '<td class="remaining-cell" data-row-idx="' + row.idx + '" data-is-split="1" style="text-align:right;vertical-align:middle;padding:5px;color:#a0aec0;font-size:11px;">'
-					+ remaining_qtl.toFixed(2) + ' left</td>';
+					+ remaining_kg.toFixed(2) + ' left</td>';
 			} else if (has_siblings) {
 				html += '<td class="remaining-cell" data-row-idx="' + row.idx + '" data-is-split="0" style="text-align:right;vertical-align:middle;padding:5px;font-weight:600;color:#805ad5;">'
-					+ '<span style="font-size:10px;color:#a0aec0;">' + row.pending_quintal.toFixed(2) + '</span>'
-					+ '<br>' + remaining_qtl.toFixed(2) + ' left</td>';
+					+ '<span style="font-size:10px;color:#a0aec0;">' + row.pending_kg.toFixed(2) + '</span>'
+					+ '<br>' + remaining_kg.toFixed(2) + ' left</td>';
 			} else {
 				html += '<td class="remaining-cell" data-row-idx="' + row.idx + '" data-is-split="0" style="text-align:right;vertical-align:middle;padding:5px;font-weight:600;color:#805ad5;">'
-					+ row.pending_quintal.toFixed(2) + '</td>';
+					+ row.pending_kg.toFixed(2) + '</td>';
 			}
 
 			// Pack Size (dropdown)
@@ -420,7 +420,7 @@ function build_get_items_dialog(frm, pending_items, pack_sizes, bag_cost_map) {
 		html += '<div class="dialog-footer-summary" style="display:flex;gap:20px;font-size:12.5px;color:#4a5568;">';
 		html += '<div>Selected: <strong>' + summary.selected + '</strong> of ' + rows.length + '</div>';
 		html += '<div>Deliver: <strong>' + summary.total_qty + '</strong> packs</div>';
-		html += '<div>Quintal: <strong>' + summary.total_quintal.toFixed(2) + '</strong></div>';
+		html += '<div>KG: <strong>' + summary.total_kg.toFixed(2) + '</strong></div>';
 		html += '<div>Amount: <strong>&#8377; ' + format_number(summary.total_amount) + '</strong></div>';
 		html += '</div></div>';
 
@@ -466,7 +466,7 @@ function bind_get_items_events(wrapper, rows, pack_weight_map, bag_cost_map, ren
 			row.bag_cost = bc;
 			row.rate = (flt(row.price_per_kg) * flt(row.pack_weight_kg)) + bc;
 
-			// Auto-convert deliver_qty to match remaining quintal
+			// Auto-convert deliver_qty to match remaining KG
 			row.deliver_qty = calc_deliver_packs_remaining(rows, row);
 
 			// Auto-check
@@ -483,18 +483,18 @@ function bind_get_items_events(wrapper, rows, pack_weight_map, bag_cost_map, ren
 		if (!row) return;
 		if (val < 0) val = 0;
 
-		// Cap in quintal — account for sibling rows (same deal_item)
-		let sibling_qtl = get_sibling_quintal(rows, row);
-		let available_qtl = flt(row.pending_quintal) - sibling_qtl;
-		let delivering_qtl = (val * flt(row.pack_weight_kg)) / 100;
+		// Cap in KG — account for sibling rows (same deal_item)
+		let sibling_kg = get_sibling_kg(rows, row);
+		let available_kg = flt(row.pending_kg) - sibling_kg;
+		let delivering_kg = val * flt(row.pack_weight_kg);
 
-		if (flt(row.pack_weight_kg) > 0 && delivering_qtl > available_qtl + 0.01) {
-			let max_packs = Math.floor(available_qtl * 100 / flt(row.pack_weight_kg));
+		if (flt(row.pack_weight_kg) > 0 && delivering_kg > available_kg + 1) {
+			let max_packs = Math.floor(available_kg / flt(row.pack_weight_kg));
 			if (max_packs < 0) max_packs = 0;
 			val = max_packs;
 			$(this).val(val);
 			frappe.show_alert({
-				message: __('Max {0} packs ({1} Qtl available)', [max_packs, available_qtl.toFixed(2)]),
+				message: __('Max {0} packs ({1} KG available)', [max_packs, available_kg.toFixed(2)]),
 				indicator: 'orange'
 			}, 3);
 		}
@@ -511,18 +511,18 @@ function bind_get_items_events(wrapper, rows, pack_weight_map, bag_cost_map, ren
 		// Update remaining cells for ALL rows with same deal_item
 		rows.forEach(function(r) {
 			if (r.deal_item_name === row.deal_item_name) {
-				let sib = get_sibling_quintal(rows, r);
-				let rem = flt(r.pending_quintal) - sib;
+				let sib = get_sibling_kg(rows, r);
+				let rem = flt(r.pending_kg) - sib;
 				let $cell = wrapper.find('.remaining-cell[data-row-idx="' + r.idx + '"]');
 				if (r.is_split) {
 					$cell.text(rem.toFixed(2) + ' left');
-					$cell.css('color', rem < 0.01 ? '#e53e3e' : '#a0aec0');
+					$cell.css('color', rem < 0.1 ? '#e53e3e' : '#a0aec0');
 				} else {
 					// Parent row: show total + remaining
 					let has_sibs = rows.some(function(s) { return s !== r && s.deal_item_name === r.deal_item_name; });
 					if (has_sibs) {
 						$cell.html(
-							'<span style="font-size:10px;color:#a0aec0;">' + r.pending_quintal.toFixed(2) + '</span>'
+							'<span style="font-size:10px;color:#a0aec0;">' + r.pending_kg.toFixed(2) + '</span>'
 							+ '<br>' + rem.toFixed(2) + ' left'
 						);
 					}
@@ -535,7 +535,7 @@ function bind_get_items_events(wrapper, rows, pack_weight_map, bag_cost_map, ren
 		wrapper.find('.dialog-footer-summary').html(
 			'<div>Selected: <strong>' + summary.selected + '</strong> of ' + rows.length + '</div>'
 			+ '<div>Deliver: <strong>' + summary.total_qty + '</strong> packs</div>'
-			+ '<div>Quintal: <strong>' + summary.total_quintal.toFixed(2) + '</strong></div>'
+			+ '<div>KG: <strong>' + summary.total_kg.toFixed(2) + '</strong></div>'
 			+ '<div>Amount: <strong>&#8377; ' + format_number(summary.total_amount) + '</strong></div>'
 		);
 	});
@@ -563,7 +563,7 @@ function bind_get_items_events(wrapper, rows, pack_weight_map, bag_cost_map, ren
 			qty: source.qty,
 			already_delivered: source.already_delivered,
 			pending_qty: source.pending_qty,
-			pending_quintal: source.pending_quintal,
+			pending_kg: source.pending_kg,
 			price_per_kg: source.price_per_kg,
 			base_price_50kg: source.base_price_50kg,
 			deliver_qty: 0,
@@ -588,28 +588,28 @@ function bind_get_items_events(wrapper, rows, pack_weight_map, bag_cost_map, ren
 
 
 function calc_deliver_packs(row) {
-	/**Convert pending quintal to packs for current pack size.*/
+	/**Convert pending KG to packs for current pack size.*/
 	if (flt(row.pack_weight_kg) <= 0) return 0;
-	return Math.floor(flt(row.pending_quintal) * 100 / flt(row.pack_weight_kg));
+	return Math.floor(flt(row.pending_kg) / flt(row.pack_weight_kg));
 }
 
 
 function calc_deliver_packs_remaining(rows, row) {
-	/**Convert remaining quintal (after siblings) to packs for current pack size.*/
+	/**Convert remaining KG (after siblings) to packs for current pack size.*/
 	if (flt(row.pack_weight_kg) <= 0) return 0;
-	let sibling_qtl = get_sibling_quintal(rows, row);
-	let remaining_qtl = flt(row.pending_quintal) - sibling_qtl;
-	if (remaining_qtl <= 0) return 0;
-	return Math.floor(remaining_qtl * 100 / flt(row.pack_weight_kg));
+	let sibling_kg = get_sibling_kg(rows, row);
+	let remaining_kg = flt(row.pending_kg) - sibling_kg;
+	if (remaining_kg <= 0) return 0;
+	return Math.floor(remaining_kg / flt(row.pack_weight_kg));
 }
 
 
-function get_sibling_quintal(rows, current_row) {
-	/**Get total quintal being delivered by sibling rows (same deal_item, excluding current row).*/
+function get_sibling_kg(rows, current_row) {
+	/**Get total KG being delivered by sibling rows (same deal_item, excluding current row).*/
 	let total = 0;
 	rows.forEach(function(r) {
 		if (r !== current_row && r.deal_item_name === current_row.deal_item_name && r.checked) {
-			total += (flt(r.deliver_qty) * flt(r.pack_weight_kg)) / 100;
+			total += flt(r.deliver_qty) * flt(r.pack_weight_kg);
 		}
 	});
 	return total;
@@ -624,14 +624,14 @@ function reindex_rows(rows) {
 function get_dialog_summary(rows) {
 	let selected = 0;
 	let total_qty = 0;
-	let total_quintal = 0;
+	let total_kg = 0;
 	let total_amount = 0;
 
 	rows.forEach(function(row) {
 		if (row.checked && row.deliver_qty > 0) {
 			selected++;
 			total_qty += flt(row.deliver_qty);
-			total_quintal += (flt(row.deliver_qty) * flt(row.pack_weight_kg)) / 100;
+			total_kg += flt(row.deliver_qty) * flt(row.pack_weight_kg);
 			total_amount += flt(row.deliver_qty) * flt(row.rate);
 		}
 	});
@@ -639,7 +639,7 @@ function get_dialog_summary(rows) {
 	return {
 		selected: selected,
 		total_qty: total_qty,
-		total_quintal: total_quintal,
+		total_kg: total_kg,
 		total_amount: total_amount
 	};
 }
@@ -897,14 +897,14 @@ function clear_items_if_changed(frm) {
 
 
 function recalculate_totals(frm) {
-	let total_qty = 0, total_quintal = 0, total_amount = 0;
+	let total_qty = 0, total_kg = 0, total_amount = 0;
 	(frm.doc.items || []).forEach(function(row) {
 		total_qty += flt(row.deliver_qty);
-		total_quintal += (flt(row.deliver_qty) * flt(row.pack_weight_kg)) / 100;
+		total_kg += flt(row.deliver_qty) * flt(row.pack_weight_kg);
 		total_amount += flt(row.amount);
 	});
 	frm.set_value('total_delivery_qty', total_qty);
-	frm.set_value('total_delivery_quintal', total_quintal);
+	frm.set_value('total_delivery_kg', total_kg);
 	frm.set_value('total_amount', total_amount);
 }
 

@@ -46,32 +46,32 @@ class DealDelivery(Document):
 				frappe.throw("Deal Item {0} not found in Deal {1}.".format(
 					row.deal_item, row.soda))
 
-			# Validate in quintal (allows different pack sizes)
-			booked_quintal = (flt(deal_item_row.qty) * flt(deal_item_row.pack_weight_kg)) / 100
-			other_delivered_quintal = get_other_delivered_quintal_for_item(
+			# Validate in KG (allows different pack sizes)
+			booked_kg = flt(deal_item_row.qty) * flt(deal_item_row.pack_weight_kg)
+			other_delivered_kg = get_other_delivered_kg_for_item(
 				row.soda, row.deal_item, self.name)
-			available_quintal = booked_quintal - flt(other_delivered_quintal)
-			delivering_quintal = (flt(row.deliver_qty) * flt(row.pack_weight_kg)) / 100
+			available_kg = booked_kg - flt(other_delivered_kg)
+			delivering_kg = flt(row.deliver_qty) * flt(row.pack_weight_kg)
 
-			if delivering_quintal > available_quintal + 0.01:
+			if delivering_kg > available_kg + 1:
 				frappe.throw(
-					"Row {0}: Delivering {1:.2f} Qtl for Deal {2} Item {3} exceeds available {4:.2f} Qtl".format(
-						row.idx, delivering_quintal, row.soda, deal_item_row.item, available_quintal
+					"Row {0}: Delivering {1:.2f} KG for Deal {2} Item {3} exceeds available {4:.2f} KG".format(
+						row.idx, delivering_kg, row.soda, deal_item_row.item, available_kg
 					)
 				)
 
 	def calculate_totals(self):
 		total_qty = 0
-		total_quintal = 0
+		total_kg = 0
 		total_amount = 0
 		for row in self.items:
 			row.amount = flt(row.deliver_qty) * flt(row.rate)
 			total_qty += flt(row.deliver_qty)
-			total_quintal += (flt(row.deliver_qty) * flt(row.pack_weight_kg)) / 100
+			total_kg += flt(row.deliver_qty) * flt(row.pack_weight_kg)
 			total_amount += flt(row.amount)
 
 		self.total_delivery_qty = total_qty
-		self.total_delivery_quintal = total_quintal
+		self.total_delivery_kg = total_kg
 		self.total_amount = total_amount
 
 	def on_update(self):
@@ -121,8 +121,8 @@ def get_other_delivered_qty_for_item(deal_name, deal_item_name, exclude_delivery
 	return flt(result[0][0]) if result else 0
 
 
-def get_other_delivered_quintal_for_item(deal_name, deal_item_name, exclude_delivery=None):
-	"""Get total delivered quintal for a specific Deal Item row."""
+def get_other_delivered_kg_for_item(deal_name, deal_item_name, exclude_delivery=None):
+	"""Get total delivered KG for a specific Deal Item row."""
 	conditions = ["sdi.soda = %s", "sdi.deal_item = %s"]
 	values = [deal_name, deal_item_name]
 
@@ -131,7 +131,7 @@ def get_other_delivered_quintal_for_item(deal_name, deal_item_name, exclude_deli
 		values.append(exclude_delivery)
 
 	result = frappe.db.sql("""
-		SELECT COALESCE(SUM(sdi.deliver_qty * sdi.pack_weight_kg / 100), 0)
+		SELECT COALESCE(SUM(sdi.deliver_qty * sdi.pack_weight_kg), 0)
 		FROM `tabDeal Delivery Item` sdi
 		INNER JOIN `tabDeal Delivery` sd ON sd.name = sdi.parent
 		WHERE {conditions}
@@ -184,21 +184,21 @@ def get_pending_deal_items(customer, item=None, pack_size=None, exclude_delivery
 
 	result = []
 	for row in rows:
-		booked_quintal = (flt(row.qty) * flt(row.pack_weight_kg)) / 100
-		other_delivered_quintal = get_other_delivered_quintal_for_item(
+		booked_kg = flt(row.qty) * flt(row.pack_weight_kg)
+		other_delivered_kg = get_other_delivered_kg_for_item(
 			row.deal_name, row.deal_item_name, exclude_delivery)
-		pending_quintal = booked_quintal - flt(other_delivered_quintal)
+		pending_kg = booked_kg - flt(other_delivered_kg)
 
 		other_delivered_packs = get_other_delivered_qty_for_item(
 			row.deal_name, row.deal_item_name, exclude_delivery)
 		actual_pending_packs = flt(row.qty) - flt(other_delivered_packs)
 
-		if pending_quintal > 0.001:
+		if pending_kg > 0.1:
 			row['already_delivered'] = flt(other_delivered_packs)
 			row['pending_qty'] = actual_pending_packs
-			row['booked_quintal'] = booked_quintal
-			row['delivered_quintal'] = flt(other_delivered_quintal)
-			row['pending_quintal'] = pending_quintal
+			row['booked_kg'] = booked_kg
+			row['delivered_kg'] = flt(other_delivered_kg)
+			row['pending_kg'] = pending_kg
 			result.append(row)
 
 	return result

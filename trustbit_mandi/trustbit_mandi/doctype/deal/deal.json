@@ -18,11 +18,11 @@
   "items",
   "section_totals",
   "total_qty",
-  "total_quintal",
+  "total_kg",
   "column_break_totals",
   "total_amount",
-  "total_delivered_quintal",
-  "total_pending_quintal",
+  "total_delivered_kg",
+  "total_pending_kg",
   "section_delivery_status",
   "delivery_status_html",
   "section_remarks",
@@ -119,10 +119,9 @@
    "read_only": 1
   },
   {
-   "description": "1 Quintal = 100 KG",
-   "fieldname": "total_quintal",
+   "fieldname": "total_kg",
    "fieldtype": "Float",
-   "label": "Total Quintal",
+   "label": "Total KG",
    "read_only": 1
   },
   {
@@ -137,15 +136,15 @@
    "read_only": 1
   },
   {
-   "fieldname": "total_delivered_quintal",
+   "fieldname": "total_delivered_kg",
    "fieldtype": "Float",
-   "label": "Delivered Quintal",
+   "label": "Delivered KG",
    "read_only": 1
   },
   {
-   "fieldname": "total_pending_quintal",
+   "fieldname": "total_pending_kg",
    "fieldtype": "Float",
-   "label": "Pending Quintal",
+   "label": "Pending KG",
    "read_only": 1
   },
   {
@@ -172,7 +171,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-02-17 19:00:00.000000",
+ "modified": "2026-02-18 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Trustbit Mandi",
  "name": "Deal",
