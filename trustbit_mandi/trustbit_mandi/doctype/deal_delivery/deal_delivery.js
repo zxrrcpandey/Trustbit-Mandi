@@ -338,11 +338,18 @@ function build_get_items_dialog(frm, pending_items, pack_sizes, bag_cost_map) {
 			// Pending Quintal — show remaining for this deal_item group
 			let sibling_qtl = get_sibling_quintal(rows, row);
 			let remaining_qtl = flt(row.pending_quintal) - sibling_qtl;
+			let has_siblings = rows.some(function(r) {
+				return r !== row && r.deal_item_name === row.deal_item_name;
+			});
 			if (row.is_split) {
-				html += '<td class="remaining-cell" data-row-idx="' + row.idx + '" style="text-align:right;vertical-align:middle;padding:5px;color:#a0aec0;font-size:11px;">'
+				html += '<td class="remaining-cell" data-row-idx="' + row.idx + '" data-is-split="1" style="text-align:right;vertical-align:middle;padding:5px;color:#a0aec0;font-size:11px;">'
 					+ remaining_qtl.toFixed(2) + ' left</td>';
+			} else if (has_siblings) {
+				html += '<td class="remaining-cell" data-row-idx="' + row.idx + '" data-is-split="0" style="text-align:right;vertical-align:middle;padding:5px;font-weight:600;color:#805ad5;">'
+					+ '<span style="font-size:10px;color:#a0aec0;">' + row.pending_quintal.toFixed(2) + '</span>'
+					+ '<br>' + remaining_qtl.toFixed(2) + ' left</td>';
 			} else {
-				html += '<td style="text-align:right;vertical-align:middle;padding:5px;font-weight:600;color:#805ad5;">'
+				html += '<td class="remaining-cell" data-row-idx="' + row.idx + '" data-is-split="0" style="text-align:right;vertical-align:middle;padding:5px;font-weight:600;color:#805ad5;">'
 					+ row.pending_quintal.toFixed(2) + '</td>';
 			}
 
@@ -501,14 +508,25 @@ function bind_get_items_events(wrapper, rows, pack_weight_map, bag_cost_map, ren
 		$amt.html(amount > 0 ? format_number(amount) : '--');
 		$amt.css({'font-weight': amount > 0 ? '600' : '', 'color': amount > 0 ? '' : '#718096'});
 
-		// Update remaining cells for ALL sibling split rows (same deal_item)
+		// Update remaining cells for ALL rows with same deal_item
 		rows.forEach(function(r) {
-			if (r.deal_item_name === row.deal_item_name && r.is_split) {
+			if (r.deal_item_name === row.deal_item_name) {
 				let sib = get_sibling_quintal(rows, r);
 				let rem = flt(r.pending_quintal) - sib;
 				let $cell = wrapper.find('.remaining-cell[data-row-idx="' + r.idx + '"]');
-				$cell.text(rem.toFixed(2) + ' left');
-				$cell.css('color', rem < 0.01 ? '#e53e3e' : '#a0aec0');
+				if (r.is_split) {
+					$cell.text(rem.toFixed(2) + ' left');
+					$cell.css('color', rem < 0.01 ? '#e53e3e' : '#a0aec0');
+				} else {
+					// Parent row: show total + remaining
+					let has_sibs = rows.some(function(s) { return s !== r && s.deal_item_name === r.deal_item_name; });
+					if (has_sibs) {
+						$cell.html(
+							'<span style="font-size:10px;color:#a0aec0;">' + r.pending_quintal.toFixed(2) + '</span>'
+							+ '<br>' + rem.toFixed(2) + ' left'
+						);
+					}
+				}
 			}
 		});
 
