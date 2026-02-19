@@ -80,6 +80,12 @@ function render_pending_summary(frm) {
 	wrapper = wrapper.$wrapper;
 	wrapper.empty();
 
+	// Only show pending summary for draft deliveries
+	if (frm.doc.docstatus !== 0) {
+		wrapper.html('');
+		return;
+	}
+
 	if (!frm.doc.customer) {
 		wrapper.html('<div class="text-muted text-center" style="padding:15px;">Select a customer to see pending deals</div>');
 		return;
