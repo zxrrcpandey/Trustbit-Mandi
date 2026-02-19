@@ -3,6 +3,15 @@
 
 frappe.ui.form.on('Deal Delivery', {
 	refresh: function(frm) {
+		// Override default Draft/Submitted indicator with custom labels
+		if (frm.doc.docstatus === 0) {
+			frm.page.set_indicator(__('Sent for Loading & Check'), 'orange');
+		} else if (frm.doc.docstatus === 1) {
+			frm.page.set_indicator(__('Loaded & Submitted'), 'blue');
+		} else if (frm.doc.docstatus === 2) {
+			frm.page.set_indicator(__('Cancelled'), 'red');
+		}
+
 		// Show action buttons only in Draft mode
 		if (frm.doc.docstatus === 0) {
 			frm.add_custom_button(__('Get Items'), function() {
