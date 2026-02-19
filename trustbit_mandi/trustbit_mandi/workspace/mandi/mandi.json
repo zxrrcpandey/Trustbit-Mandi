@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"number_cards_section\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Overview</b></span>\",\"col\":12}},{\"id\":\"nc_grain_purchases\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Grain Purchases\",\"col\":3}},{\"id\":\"nc_total_deals\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Deals\",\"col\":3}},{\"id\":\"nc_pending_deals\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Pending Deals\",\"col\":3}},{\"id\":\"nc_deal_deliveries\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Deal Deliveries\",\"col\":3}},{\"id\":\"mandi_section\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Mandi</b></span>\",\"col\":12}},{\"id\":\"sc_grain_purchase\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Grain Purchase\",\"col\":3}},{\"id\":\"sc_tax_payment\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Tax Payment Record\",\"col\":3}},{\"id\":\"sc_pps\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"PPS Entry\",\"col\":3}},{\"id\":\"sc_bank_master\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi Bank Master\",\"col\":3}},{\"id\":\"mandi_reports_section\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h6\\\"><b>Mandi Reports</b></span>\",\"col\":12}},{\"id\":\"sc_all_in_one\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi All In One Report\",\"col\":3}},{\"id\":\"sc_payment_report\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi Payment Report\",\"col\":3}},{\"id\":\"sc_purchase_report\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi Purchase Report\",\"col\":3}},{\"id\":\"sc_tax_report\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi Tax Report\",\"col\":3}},{\"id\":\"mandi_masters_section\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h6\\\"><b>Mandi Masters</b></span>\",\"col\":12}},{\"id\":\"sc_hamali\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Hamali Rate Master\",\"col\":3}},{\"id\":\"sc_bank\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi Bank\",\"col\":3}},{\"id\":\"sc_tax_type\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi Tax Type\",\"col\":3}},{\"id\":\"spacer_1\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"spacer_2\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"deal_section\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Deal</b></span>\",\"col\":12}},{\"id\":\"sc_deal\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Deal\",\"col\":3}},{\"id\":\"sc_deal_delivery\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Deal Delivery\",\"col\":3}},{\"id\":\"sc_deal_price_list\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Deal Price List\",\"col\":3}},{\"id\":\"deal_reports_section\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h6\\\"><b>Deal Reports</b></span>\",\"col\":12}},{\"id\":\"sc_deal_ledger\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Deal Ledger\",\"col\":3}},{\"id\":\"sc_deal_price_list_ledger\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Deal Price List Ledger\",\"col\":3}},{\"id\":\"deal_masters_section\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h6\\\"><b>Deal Masters</b></span>\",\"col\":12}},{\"id\":\"sc_deal_price_list_area\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Deal Price List Area\",\"col\":3}},{\"id\":\"sc_deal_pack_size\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Deal Pack Size\",\"col\":3}},{\"id\":\"sc_package_bag_master\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Package Bag Master\",\"col\":3}}]",
+ "content": "[{\"id\":\"number_cards_section\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Overview</b></span>\",\"col\":12}},{\"id\":\"nc_grain_purchases\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Grain Purchases\",\"col\":3}},{\"id\":\"nc_total_deals\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Deals\",\"col\":3}},{\"id\":\"nc_pending_deals\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Pending Deals\",\"col\":3}},{\"id\":\"nc_deal_deliveries\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Deal Deliveries\",\"col\":3}},{\"id\":\"mandi_section\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Mandi</b></span>\",\"col\":12}},{\"id\":\"sc_grain_purchase\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Grain Purchase\",\"col\":3}},{\"id\":\"sc_tax_payment\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Tax Payment Record\",\"col\":3}},{\"id\":\"sc_pps\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"PPS Entry\",\"col\":3}},{\"id\":\"sc_bank_master\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi Bank Master\",\"col\":3}},{\"id\":\"mandi_reports_section\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h6\\\"><b>Mandi Reports</b></span>\",\"col\":12}},{\"id\":\"sc_all_in_one\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi All In One Report\",\"col\":3}},{\"id\":\"sc_payment_report\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi Payment Report\",\"col\":3}},{\"id\":\"sc_purchase_report\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi Purchase Report\",\"col\":3}},{\"id\":\"sc_tax_report\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi Tax Report\",\"col\":3}},{\"id\":\"mandi_masters_section\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h6\\\"><b>Mandi Masters</b></span>\",\"col\":12}},{\"id\":\"sc_hamali\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Hamali Rate Master\",\"col\":3}},{\"id\":\"sc_bank\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi Bank\",\"col\":3}},{\"id\":\"sc_tax_type\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mandi Tax Type\",\"col\":3}},{\"id\":\"spacer_1\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"spacer_2\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"deal_section\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Deal</b></span>\",\"col\":12}},{\"id\":\"sc_deal\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Deal\",\"col\":3}},{\"id\":\"sc_deal_delivery\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Deal Delivery\",\"col\":3}},{\"id\":\"sc_deal_price_list\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Deal Price List\",\"col\":3}},{\"id\":\"deal_reports_section\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h6\\\"><b>Deal Reports</b></span>\",\"col\":12}},{\"id\":\"sc_deal_ledger\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Deal Ledger\",\"col\":3}},{\"id\":\"sc_deal_price_list_ledger\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Deal Price List Ledger\",\"col\":3}},{\"id\":\"deal_masters_section\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h6\\\"><b>Deal Masters</b></span>\",\"col\":12}},{\"id\":\"sc_deal_price_list_area\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Deal Price List Area\",\"col\":3}},{\"id\":\"sc_deal_pack_size\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Deal Pack Size\",\"col\":3}},{\"id\":\"sc_package_bag_master\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Package Bag Master\",\"col\":3}},{\"id\":\"spacer_3\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"spacer_4\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"vehicle_section\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Vehicle</b></span>\",\"col\":12}},{\"id\":\"sc_vehicle_dispatch\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Vehicle Dispatch\",\"col\":3}},{\"id\":\"sc_vehicle_master\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Vehicle Master\",\"col\":3}}]",
  "creation": "2026-02-05 10:00:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
@@ -249,6 +249,34 @@
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Vehicle",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Vehicle Dispatch",
+   "link_count": 0,
+   "link_to": "Vehicle Dispatch",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Vehicle Master",
+   "link_count": 0,
+   "link_to": "Vehicle Master",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
  "modified": "2026-02-15 14:00:00.000000",
@@ -405,6 +433,20 @@
    "doc_view": "List",
    "label": "Package Bag Master",
    "link_to": "Package Bag Master",
+   "type": "DocType"
+  },
+  {
+   "color": "Blue",
+   "doc_view": "List",
+   "label": "Vehicle Dispatch",
+   "link_to": "Vehicle Dispatch",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Vehicle Master",
+   "link_to": "Vehicle Master",
    "type": "DocType"
   }
  ],

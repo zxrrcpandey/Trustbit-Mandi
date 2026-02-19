@@ -1,0 +1,257 @@
+{
+ "actions": [],
+ "autoname": "VD-.DD.-.MM.-.YYYY.-.####",
+ "creation": "2026-02-19 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_dispatch",
+  "dispatch_date",
+  "vehicle",
+  "vehicle_type",
+  "column_break_dispatch",
+  "status",
+  "driver_name",
+  "driver_mobile",
+  "amended_from",
+  "section_capacity",
+  "vehicle_capacity_kg",
+  "total_loaded_kg",
+  "column_break_capacity",
+  "remaining_capacity_kg",
+  "capacity_utilization",
+  "section_capacity_bar",
+  "capacity_bar_html",
+  "section_deliveries",
+  "deliveries",
+  "section_totals",
+  "total_packs",
+  "total_amount",
+  "column_break_totals",
+  "total_customers",
+  "section_remarks",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_dispatch",
+   "fieldtype": "Section Break",
+   "label": "Dispatch Details"
+  },
+  {
+   "default": "Today",
+   "fieldname": "dispatch_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Dispatch Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "vehicle",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Vehicle",
+   "options": "Vehicle Master",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "vehicle.vehicle_type",
+   "fieldname": "vehicle_type",
+   "fieldtype": "Data",
+   "label": "Vehicle Type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_dispatch",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Loading",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Loading\nDispatched\nCancelled",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "vehicle.driver_name",
+   "fieldname": "driver_name",
+   "fieldtype": "Data",
+   "label": "Driver Name"
+  },
+  {
+   "fetch_from": "vehicle.driver_mobile",
+   "fieldname": "driver_mobile",
+   "fieldtype": "Data",
+   "label": "Driver Mobile",
+   "options": "Phone"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Vehicle Dispatch",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_capacity",
+   "fieldtype": "Section Break",
+   "label": "Capacity"
+  },
+  {
+   "fetch_from": "vehicle.capacity_kg",
+   "fieldname": "vehicle_capacity_kg",
+   "fieldtype": "Float",
+   "label": "Vehicle Capacity (KG)",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "total_loaded_kg",
+   "fieldtype": "Float",
+   "label": "Total Loaded (KG)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_capacity",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "remaining_capacity_kg",
+   "fieldtype": "Float",
+   "label": "Remaining Capacity (KG)",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "capacity_utilization",
+   "fieldtype": "Percent",
+   "label": "Utilization %",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_capacity_bar",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "capacity_bar_html",
+   "fieldtype": "HTML",
+   "label": "Capacity Bar"
+  },
+  {
+   "fieldname": "section_deliveries",
+   "fieldtype": "Section Break",
+   "label": "Deliveries"
+  },
+  {
+   "fieldname": "deliveries",
+   "fieldtype": "Table",
+   "label": "Deliveries",
+   "options": "Vehicle Dispatch Item"
+  },
+  {
+   "fieldname": "section_totals",
+   "fieldtype": "Section Break",
+   "label": "Totals"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_packs",
+   "fieldtype": "Float",
+   "label": "Total Packs",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "label": "Total Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_totals",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_customers",
+   "fieldtype": "Int",
+   "label": "Customers",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_remarks",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-02-19 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Trustbit Mandi",
+ "name": "Vehicle Dispatch",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Stock Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "vehicle,driver_name",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [
+  {
+   "color": "orange",
+   "title": "Loading"
+  },
+  {
+   "color": "blue",
+   "title": "Dispatched"
+  },
+  {
+   "color": "red",
+   "title": "Cancelled"
+  }
+ ],
+ "title_field": "vehicle",
+ "track_changes": 1
+}
