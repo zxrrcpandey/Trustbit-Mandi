@@ -11,6 +11,7 @@
   "customer_name",
   "customer_mobile",
   "column_break_delivery",
+  "status",
   "amended_from",
   "section_pending",
   "pending_summary_html",
@@ -64,6 +65,17 @@
   {
    "fieldname": "column_break_delivery",
    "fieldtype": "Column Break"
+  },
+  {
+   "default": "Sent for Loading & Check",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "no_copy": 1,
+   "options": "Sent for Loading & Check\nLoaded & Submitted\nCancelled",
+   "read_only": 1
   },
   {
    "fieldname": "amended_from",
@@ -139,7 +151,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-02-19 12:00:00.000000",
+ "modified": "2026-02-19 13:00:00.000000",
  "modified_by": "Administrator",
  "module": "Trustbit Mandi",
  "name": "Deal Delivery",
@@ -180,7 +192,20 @@
  "search_fields": "customer,customer_name",
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": [],
+ "states": [
+  {
+   "color": "orange",
+   "title": "Sent for Loading & Check"
+  },
+  {
+   "color": "blue",
+   "title": "Loaded & Submitted"
+  },
+  {
+   "color": "red",
+   "title": "Cancelled"
+  }
+ ],
  "title_field": "customer_name",
  "track_changes": 1
 }

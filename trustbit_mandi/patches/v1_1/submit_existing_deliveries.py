@@ -7,10 +7,10 @@ import frappe
 
 
 def execute():
-	# Set all existing Deal Deliveries to submitted
+	# Set all existing Deal Deliveries to submitted with proper status
 	frappe.db.sql("""
 		UPDATE `tabDeal Delivery`
-		SET docstatus = 1
+		SET docstatus = 1, status = 'Loaded & Submitted'
 		WHERE docstatus = 0
 	""")
 

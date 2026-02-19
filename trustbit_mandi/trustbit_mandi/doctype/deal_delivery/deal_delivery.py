@@ -11,6 +11,16 @@ class DealDelivery(Document):
 		self.set_extra_flag()
 		self.validate_items()
 		self.calculate_totals()
+		self.set_status()
+
+	def set_status(self):
+		"""Auto-set status based on docstatus."""
+		if self.docstatus == 0:
+			self.status = "Sent for Loading & Check"
+		elif self.docstatus == 1:
+			self.status = "Loaded & Submitted"
+		elif self.docstatus == 2:
+			self.status = "Cancelled"
 
 	def set_extra_flag(self):
 		"""Auto-set is_extra when soda (Deal) is not set."""
@@ -76,10 +86,12 @@ class DealDelivery(Document):
 
 	def on_submit(self):
 		"""Update Deal statuses only when delivery is submitted."""
+		self.db_set("status", "Loaded & Submitted")
 		self.update_deal_statuses()
 
 	def on_cancel(self):
 		"""Recalculate Deal statuses when delivery is cancelled."""
+		self.db_set("status", "Cancelled")
 		self.update_deal_statuses()
 
 	def on_trash(self):
