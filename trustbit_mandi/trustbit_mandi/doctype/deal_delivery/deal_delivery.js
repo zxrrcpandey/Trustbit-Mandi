@@ -91,7 +91,7 @@ function render_pending_summary(frm) {
 		method: 'trustbit_mandi.trustbit_mandi.doctype.deal_delivery.deal_delivery.get_pending_deal_items',
 		args: {
 			customer: frm.doc.customer,
-			exclude_delivery: frm.doc.name || null
+			exclude_delivery: frm.doc.docstatus === 0 ? (frm.doc.name || null) : null
 		},
 		callback: function(r) {
 			if (!r.message || r.message.length === 0) {
