@@ -1,8 +1,6 @@
 def get_data():
 	return {
-		'internal_links': {
-			'Deal Delivery': ['items', 'soda']
-		},
+		'fieldname': 'soda',
 		'transactions': [
 			{
 				'label': 'Delivery',
