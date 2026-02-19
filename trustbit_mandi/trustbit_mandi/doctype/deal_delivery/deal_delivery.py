@@ -74,16 +74,23 @@ class DealDelivery(Document):
 		self.total_delivery_kg = total_kg
 		self.total_amount = total_amount
 
-	def on_update(self):
+	def on_submit(self):
+		"""Update Deal statuses only when delivery is submitted."""
+		self.update_deal_statuses()
+
+	def on_cancel(self):
+		"""Recalculate Deal statuses when delivery is cancelled."""
 		self.update_deal_statuses()
 
 	def on_trash(self):
+		"""Track affected deals before deletion (only drafts can be deleted)."""
 		self._affected_deals = set()
 		for row in self.items:
 			if row.soda:
 				self._affected_deals.add(row.soda)
 
 	def after_delete(self):
+		"""Recalculate affected deals after deletion."""
 		for deal_name in getattr(self, '_affected_deals', set()):
 			try:
 				deal = frappe.get_doc("Deal", deal_name)
@@ -103,8 +110,9 @@ class DealDelivery(Document):
 
 
 def get_other_delivered_qty_for_item(deal_name, deal_item_name, exclude_delivery=None):
-	"""Get total delivered qty (packs) for a specific Deal Item row."""
-	conditions = ["sdi.soda = %s", "sdi.deal_item = %s"]
+	"""Get total delivered qty (packs) for a specific Deal Item row.
+	Only counts submitted deliveries (docstatus=1)."""
+	conditions = ["sdi.soda = %s", "sdi.deal_item = %s", "sd.docstatus = 1"]
 	values = [deal_name, deal_item_name]
 
 	if exclude_delivery:
@@ -122,8 +130,9 @@ def get_other_delivered_qty_for_item(deal_name, deal_item_name, exclude_delivery
 
 
 def get_other_delivered_kg_for_item(deal_name, deal_item_name, exclude_delivery=None):
-	"""Get total delivered KG for a specific Deal Item row."""
-	conditions = ["sdi.soda = %s", "sdi.deal_item = %s"]
+	"""Get total delivered KG for a specific Deal Item row.
+	Only counts submitted deliveries (docstatus=1)."""
+	conditions = ["sdi.soda = %s", "sdi.deal_item = %s", "sd.docstatus = 1"]
 	values = [deal_name, deal_item_name]
 
 	if exclude_delivery:
@@ -154,6 +163,16 @@ def get_pending_deal_items(customer, item=None, pack_size=None, exclude_delivery
 		item_conditions += " AND di.pack_size = %s"
 		values.append(pack_size)
 
+	# When editing an existing delivery (exclude_delivery set), include
+	# "Delivered" deals/items too — excluding the current delivery may
+	# make them pending again.
+	if exclude_delivery:
+		deal_statuses = "('Open', 'Confirmed', 'Partially Delivered', 'Delivered')"
+		item_statuses = "('Open', 'Partially Delivered', 'Delivered')"
+	else:
+		deal_statuses = "('Open', 'Confirmed', 'Partially Delivered')"
+		item_statuses = "('Open', 'Partially Delivered')"
+
 	rows = frappe.db.sql("""
 		SELECT
 			d.name as deal_name,
@@ -176,11 +195,15 @@ def get_pending_deal_items(customer, item=None, pack_size=None, exclude_delivery
 		FROM `tabDeal Item` di
 		INNER JOIN `tabDeal` d ON d.name = di.parent
 		WHERE d.customer = %s
-		  AND d.status IN ('Open', 'Confirmed', 'Partially Delivered')
-		  AND di.item_status IN ('Open', 'Partially Delivered')
+		  AND d.status IN {deal_statuses}
+		  AND di.item_status IN {item_statuses}
 		  {item_conditions}
 		ORDER BY d.soda_date ASC, d.creation ASC, di.idx ASC
-	""".format(item_conditions=item_conditions), values, as_dict=True)
+	""".format(
+		deal_statuses=deal_statuses,
+		item_statuses=item_statuses,
+		item_conditions=item_conditions
+	), values, as_dict=True)
 
 	result = []
 	for row in rows:

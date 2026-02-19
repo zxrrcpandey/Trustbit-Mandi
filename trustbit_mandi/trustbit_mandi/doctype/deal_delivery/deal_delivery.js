@@ -3,19 +3,20 @@
 
 frappe.ui.form.on('Deal Delivery', {
 	refresh: function(frm) {
-		// Get Items button
-		frm.add_custom_button(__('Get Items'), function() {
-			if (!frm.doc.customer) {
-				frappe.msgprint(__('Please select a Customer first.'));
-				return;
-			}
-			show_get_items_dialog(frm);
-		}).addClass('btn-primary');
+		// Show action buttons only in Draft mode
+		if (frm.doc.docstatus === 0) {
+			frm.add_custom_button(__('Get Items'), function() {
+				if (!frm.doc.customer) {
+					frappe.msgprint(__('Please select a Customer first.'));
+					return;
+				}
+				show_get_items_dialog(frm);
+			}).addClass('btn-primary');
 
-		// Add Extra Item button
-		frm.add_custom_button(__('Add Extra Item'), function() {
-			show_add_extra_dialog(frm);
-		});
+			frm.add_custom_button(__('Add Extra Item'), function() {
+				show_add_extra_dialog(frm);
+			});
+		}
 
 		// Render pending summary
 		render_pending_summary(frm);

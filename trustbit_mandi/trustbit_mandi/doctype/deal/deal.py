@@ -79,6 +79,7 @@ class Deal(Document):
 				FROM `tabDeal Delivery Item` sdi
 				INNER JOIN `tabDeal Delivery` sd ON sd.name = sdi.parent
 				WHERE sdi.soda = %s AND sdi.deal_item = %s
+				  AND sd.docstatus = 1
 			""", (self.name, row.name))[0]
 
 			row.delivered_qty = flt(result[0])

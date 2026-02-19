@@ -76,7 +76,8 @@ def get_data(filters):
 			(SELECT MAX(sd.delivery_date)
 			 FROM `tabDeal Delivery Item` sdi
 			 INNER JOIN `tabDeal Delivery` sd ON sd.name = sdi.parent
-			 WHERE sdi.soda = s.name AND sdi.deal_item = di.name) as last_delivery_date
+			 WHERE sdi.soda = s.name AND sdi.deal_item = di.name
+			   AND sd.docstatus = 1) as last_delivery_date
 		FROM `tabDeal` s
 		INNER JOIN `tabDeal Item` di ON di.parent = s.name
 		WHERE {conditions}

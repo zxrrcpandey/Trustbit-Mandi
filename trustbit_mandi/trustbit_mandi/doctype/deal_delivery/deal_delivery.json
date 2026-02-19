@@ -11,6 +11,7 @@
   "customer_name",
   "customer_mobile",
   "column_break_delivery",
+  "amended_from",
   "section_pending",
   "pending_summary_html",
   "section_qty",
@@ -63,6 +64,15 @@
   {
    "fieldname": "column_break_delivery",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Deal Delivery",
+   "print_hide": 1,
+   "read_only": 1
   },
   {
    "depends_on": "customer",
@@ -127,8 +137,9 @@
   }
  ],
  "index_web_pages_for_search": 1,
+ "is_submittable": 1,
  "links": [],
- "modified": "2026-02-18 12:00:00.000000",
+ "modified": "2026-02-19 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Trustbit Mandi",
  "name": "Deal Delivery",
@@ -145,6 +156,9 @@
    "report": 1,
    "role": "System Manager",
    "share": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
    "write": 1
   },
   {
@@ -157,6 +171,9 @@
    "report": 1,
    "role": "Stock Manager",
    "share": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
    "write": 1
   }
  ],
