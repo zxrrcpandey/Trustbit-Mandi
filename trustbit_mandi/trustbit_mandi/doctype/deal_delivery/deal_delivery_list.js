@@ -1,11 +1,11 @@
 frappe.listview_settings['Deal Delivery'] = {
 	get_indicator: function(doc) {
-		if (doc.status === 'Loaded & Submitted') {
-			return [__('Loaded & Submitted'), 'blue', 'status,=,Loaded & Submitted'];
-		} else if (doc.status === 'Cancelled') {
-			return [__('Cancelled'), 'red', 'status,=,Cancelled'];
-		} else if (doc.status === 'Sent for Loading & Check') {
-			return [__('Sent for Loading & Check'), 'orange', 'status,=,Sent for Loading & Check'];
+		if (doc.docstatus === 0) {
+			return [__('Sent for Loading & Check'), 'orange', 'docstatus,=,0'];
+		} else if (doc.docstatus === 1) {
+			return [__('Loaded & Submitted'), 'blue', 'docstatus,=,1'];
+		} else if (doc.docstatus === 2) {
+			return [__('Cancelled'), 'red', 'docstatus,=,2'];
 		}
 	}
 };
