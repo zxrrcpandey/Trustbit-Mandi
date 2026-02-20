@@ -125,24 +125,24 @@ def get_rate_for_pack_size(price_list_area, item, pack_size, as_of_datetime=None
 
 @frappe.whitelist()
 def get_items_with_prices(price_list_area):
-	"""Get all enabled items with their latest price for the given area."""
+	"""Get all enabled items with current and previous price for the given area."""
 	now = now_datetime()
 
 	return frappe.db.sql("""
 		SELECT i.name as item, i.item_name,
-			dpl.base_price_50kg as current_price
+			(SELECT dpl1.base_price_50kg
+			 FROM `tabDeal Price List` dpl1
+			 WHERE dpl1.item = i.name AND dpl1.price_list_area = %(area)s
+			   AND dpl1.is_active = 1 AND dpl1.effective_datetime <= %(now)s
+			 ORDER BY dpl1.effective_datetime DESC LIMIT 1
+			) as current_price,
+			(SELECT dpl2.base_price_50kg
+			 FROM `tabDeal Price List` dpl2
+			 WHERE dpl2.item = i.name AND dpl2.price_list_area = %(area)s
+			   AND dpl2.is_active = 1 AND dpl2.effective_datetime <= %(now)s
+			 ORDER BY dpl2.effective_datetime DESC LIMIT 1 OFFSET 1
+			) as last_price
 		FROM `tabItem` i
-		LEFT JOIN `tabDeal Price List` dpl ON dpl.item = i.name
-			AND dpl.price_list_area = %(area)s
-			AND dpl.is_active = 1
-			AND dpl.effective_datetime = (
-				SELECT MAX(dpl2.effective_datetime)
-				FROM `tabDeal Price List` dpl2
-				WHERE dpl2.price_list_area = %(area)s
-				  AND dpl2.item = i.name
-				  AND dpl2.is_active = 1
-				  AND dpl2.effective_datetime <= %(now)s
-			)
 		WHERE i.disabled = 0
 		ORDER BY i.item_name
 	""", {"area": price_list_area, "now": now}, as_dict=True)

@@ -30,7 +30,7 @@ function build_price_dialog(frm, items) {
 		fields: [
 			{ fieldtype: 'HTML', fieldname: 'prices_html' }
 		],
-		size: 'large',
+		size: 'extra-large',
 		primary_action_label: __('Update'),
 		primary_action: function() {
 			submit_price_updates(frm, d, items);
@@ -47,24 +47,37 @@ function build_price_dialog(frm, items) {
 			<thead style="position: sticky; top: 0; background: var(--bg-color); z-index: 1;">
 				<tr>
 					<th>${__('Item')}</th>
-					<th style="width: 160px; text-align: right;">${__('Current Price (₹/50KG)')}</th>
-					<th style="width: 160px;">${__('New Price (₹/50KG)')}</th>
+					<th style="width: 140px; text-align: right;">${__('Last Price')}</th>
+					<th style="width: 140px; text-align: right;">${__('Current Price')}</th>
+					<th style="width: 150px;">${__('New Price (₹/50KG)')}</th>
 				</tr>
 			</thead>
 			<tbody>`;
 
 	items.forEach(function(item, idx) {
+		let last = item.last_price ? format_currency(item.last_price) : '-';
 		let current = item.current_price ? format_currency(item.current_price) : '-';
 		let current_val = item.current_price || '';
+
+		// Show price change indicator
+		let change_style = '';
+		if (item.current_price && item.last_price) {
+			if (item.current_price > item.last_price) {
+				change_style = 'color: green;';
+			} else if (item.current_price < item.last_price) {
+				change_style = 'color: red;';
+			}
+		}
 
 		html += `
 			<tr class="price-row" data-idx="${idx}">
 				<td>${item.item_name || item.item}</td>
-				<td style="text-align: right; color: var(--text-muted);">${current}</td>
+				<td style="text-align: right; color: var(--text-muted);">${last}</td>
+				<td style="text-align: right; ${change_style}">${current}</td>
 				<td>
 					<input type="number" class="form-control input-sm new-price" data-idx="${idx}"
 						value="${current_val}" min="0" step="1"
-						style="width: 140px; text-align: right;">
+						style="width: 130px; text-align: right;">
 				</td>
 			</tr>`;
 	});
