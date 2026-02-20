@@ -23,6 +23,8 @@ class DealPriceList(Document):
 @frappe.whitelist()
 def get_all_prices_for_area(price_list_area):
 	"""Get all active item prices for an area + all active pack sizes."""
+	now = now_datetime()
+
 	# Get latest active price per item for this area using subquery
 	prices = frappe.db.sql("""
 		SELECT dpl.name as price_list_name, dpl.item, dpl.item_group,
@@ -38,10 +40,10 @@ def get_all_prices_for_area(price_list_area):
 			WHERE dpl2.price_list_area = dpl.price_list_area
 			  AND dpl2.item = dpl.item
 			  AND dpl2.is_active = 1
-			  AND dpl2.effective_datetime <= NOW()
+			  AND dpl2.effective_datetime <= %s
 		  )
 		ORDER BY i.item_name
-	""", (price_list_area,), as_dict=True)
+	""", (price_list_area, now), as_dict=True)
 
 	pack_sizes = frappe.db.sql("""
 		SELECT name as pack_size, weight_kg
@@ -124,6 +126,8 @@ def get_rate_for_pack_size(price_list_area, item, pack_size, as_of_datetime=None
 @frappe.whitelist()
 def get_items_with_prices(price_list_area):
 	"""Get all enabled items with their latest price for the given area."""
+	now = now_datetime()
+
 	return frappe.db.sql("""
 		SELECT i.name as item, i.item_name,
 			dpl.base_price_50kg as current_price
@@ -137,11 +141,11 @@ def get_items_with_prices(price_list_area):
 				WHERE dpl2.price_list_area = %(area)s
 				  AND dpl2.item = i.name
 				  AND dpl2.is_active = 1
-				  AND dpl2.effective_datetime <= NOW()
+				  AND dpl2.effective_datetime <= %(now)s
 			)
 		WHERE i.disabled = 0
 		ORDER BY i.item_name
-	""", {"area": price_list_area}, as_dict=True)
+	""", {"area": price_list_area, "now": now}, as_dict=True)
 
 
 @frappe.whitelist()
