@@ -93,89 +93,113 @@ function render_pending_summary(frm) {
 
 	wrapper.html('<div class="text-muted text-center" style="padding:15px;">Loading...</div>');
 
+	// Fetch pending items and current stock in parallel
+	let pending_data = null;
+	let stock_data = null;
+	let calls_done = 0;
+
+	function render_when_ready() {
+		calls_done++;
+		if (calls_done < 2) return;
+
+		if (!pending_data || pending_data.length === 0) {
+			wrapper.html('<div class="text-muted text-center" style="padding:15px;">No pending deals for this customer</div>');
+			return;
+		}
+
+		// Build stock lookup map
+		let stock_map = {};
+		(stock_data || []).forEach(function(s) {
+			stock_map[s.item + ':' + s.pack_size] = flt(s.balance_qty);
+		});
+
+		let rows = pending_data;
+		let total_deal_qty = 0, total_delivered = 0, total_pending = 0;
+		let total_booked_kg = 0, total_delivered_kg = 0, total_pending_kg = 0;
+		let total_amount = 0;
+
+		let html = '<div style="max-height:300px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:6px;">';
+		html += '<table class="table table-sm" style="margin-bottom:0;font-size:12.5px;">';
+		html += '<thead style="background:#f7fafc;position:sticky;top:0;z-index:1;">';
+		html += '<tr>';
+		html += '<th style="padding:6px 8px;font-size:11px;">#</th>';
+		html += '<th style="padding:6px 8px;font-size:11px;">DEAL</th>';
+		html += '<th style="padding:6px 8px;font-size:11px;">DATE</th>';
+		html += '<th style="padding:6px 8px;font-size:11px;">ITEM</th>';
+		html += '<th style="padding:6px 8px;font-size:11px;">PACK SIZE</th>';
+		html += '<th style="text-align:right;padding:6px 8px;font-size:11px;">DEAL QTY</th>';
+		html += '<th style="text-align:right;padding:6px 8px;font-size:11px;">DELIVERED</th>';
+		html += '<th style="text-align:right;padding:6px 8px;font-size:11px;">PENDING</th>';
+		html += '<th style="text-align:right;padding:6px 8px;font-size:11px;">PENDING KG</th>';
+		html += '<th style="text-align:right;padding:6px 8px;font-size:11px;">STOCK</th>';
+		html += '<th style="text-align:right;padding:6px 8px;font-size:11px;">RATE</th>';
+		html += '</tr></thead><tbody>';
+
+		rows.forEach(function(s, i) {
+			let deal_qty = flt(s.qty);
+			let delivered = flt(s.already_delivered);
+			let pending = flt(s.pending_qty);
+			let pending_kg = flt(s.pending_kg);
+			let stock_qty = stock_map[s.item + ':' + s.pack_size] || 0;
+			let stock_color = stock_qty > 0 ? '#38a169' : '#e53e3e';
+
+			total_deal_qty += deal_qty;
+			total_delivered += delivered;
+			total_pending += pending;
+			total_booked_kg += flt(s.booked_kg);
+			total_delivered_kg += flt(s.delivered_kg);
+			total_pending_kg += pending_kg;
+			total_amount += pending * flt(s.rate);
+
+			html += '<tr>';
+			html += '<td style="padding:5px 8px;color:#718096;">' + (i + 1) + '</td>';
+			html += '<td style="padding:5px 8px;"><a href="/app/deal/' + s.deal_name + '" style="font-weight:600;">' + s.deal_name + '</a></td>';
+			html += '<td style="padding:5px 8px;color:#718096;">' + frappe.datetime.str_to_user(s.soda_date) + '</td>';
+			html += '<td style="padding:5px 8px;font-weight:500;">' + (s.item_name || s.item) + '</td>';
+			html += '<td style="padding:5px 8px;">' + s.pack_size + '</td>';
+			html += '<td style="text-align:right;padding:5px 8px;">' + deal_qty + '</td>';
+			html += '<td style="text-align:right;padding:5px 8px;color:#718096;">' + delivered + '</td>';
+			html += '<td style="text-align:right;padding:5px 8px;font-weight:600;color:' + (pending > 0 ? '#e53e3e' : '#38a169') + ';">' + pending + '</td>';
+			html += '<td style="text-align:right;padding:5px 8px;font-weight:600;color:#805ad5;">' + pending_kg.toFixed(2) + '</td>';
+			html += '<td style="text-align:right;padding:5px 8px;font-weight:600;color:' + stock_color + ';">' + stock_qty + '</td>';
+			html += '<td style="text-align:right;padding:5px 8px;">' + format_number(s.rate) + '</td>';
+			html += '</tr>';
+		});
+
+		html += '</tbody>';
+		html += '<tfoot style="background:#f7fafc;font-weight:bold;">';
+		html += '<tr>';
+		html += '<td colspan="5" style="padding:6px 8px;">Total (Packs)</td>';
+		html += '<td style="text-align:right;padding:6px 8px;">' + total_deal_qty + '</td>';
+		html += '<td style="text-align:right;padding:6px 8px;">' + total_delivered + '</td>';
+		html += '<td style="text-align:right;padding:6px 8px;color:#e53e3e;">' + total_pending + '</td>';
+		html += '<td></td><td></td>';
+		html += '<td style="text-align:right;padding:6px 8px;">&#8377; ' + format_number(total_amount) + '</td>';
+		html += '</tr>';
+		html += '<tr style="background:#edf2f7;">';
+		html += '<td colspan="5" style="padding:6px 8px;">Total (KG)</td>';
+		html += '<td style="text-align:right;padding:6px 8px;">' + total_booked_kg.toFixed(2) + '</td>';
+		html += '<td style="text-align:right;padding:6px 8px;">' + total_delivered_kg.toFixed(2) + '</td>';
+		html += '<td style="text-align:right;padding:6px 8px;color:#e53e3e;">' + total_pending_kg.toFixed(2) + '</td>';
+		html += '<td></td><td></td><td></td>';
+		html += '</tr></tfoot>';
+		html += '</table></div>';
+
+		wrapper.html(html);
+	}
+
 	frappe.call({
 		method: 'trustbit_mandi.trustbit_mandi.doctype.deal_delivery.deal_delivery.get_pending_deal_items',
 		args: {
 			customer: frm.doc.customer,
 			exclude_delivery: frm.doc.docstatus === 0 ? (frm.doc.name || null) : null
 		},
-		callback: function(r) {
-			if (!r.message || r.message.length === 0) {
-				wrapper.html('<div class="text-muted text-center" style="padding:15px;">No pending deals for this customer</div>');
-				return;
-			}
+		callback: function(r) { pending_data = r.message || []; render_when_ready(); }
+	});
 
-			let rows = r.message;
-			let total_deal_qty = 0, total_delivered = 0, total_pending = 0;
-			let total_booked_kg = 0, total_delivered_kg = 0, total_pending_kg = 0;
-			let total_amount = 0;
-
-			let html = '<div style="max-height:300px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:6px;">';
-			html += '<table class="table table-sm" style="margin-bottom:0;font-size:12.5px;">';
-			html += '<thead style="background:#f7fafc;position:sticky;top:0;z-index:1;">';
-			html += '<tr>';
-			html += '<th style="padding:6px 8px;font-size:11px;">#</th>';
-			html += '<th style="padding:6px 8px;font-size:11px;">DEAL</th>';
-			html += '<th style="padding:6px 8px;font-size:11px;">DATE</th>';
-			html += '<th style="padding:6px 8px;font-size:11px;">ITEM</th>';
-			html += '<th style="padding:6px 8px;font-size:11px;">PACK SIZE</th>';
-			html += '<th style="text-align:right;padding:6px 8px;font-size:11px;">DEAL QTY</th>';
-			html += '<th style="text-align:right;padding:6px 8px;font-size:11px;">DELIVERED</th>';
-			html += '<th style="text-align:right;padding:6px 8px;font-size:11px;">PENDING</th>';
-			html += '<th style="text-align:right;padding:6px 8px;font-size:11px;">PENDING KG</th>';
-			html += '<th style="text-align:right;padding:6px 8px;font-size:11px;">RATE</th>';
-			html += '</tr></thead><tbody>';
-
-			rows.forEach(function(s, i) {
-				let deal_qty = flt(s.qty);
-				let delivered = flt(s.already_delivered);
-				let pending = flt(s.pending_qty);
-				let wt = flt(s.pack_weight_kg);
-				let pending_kg = flt(s.pending_kg);
-
-				total_deal_qty += deal_qty;
-				total_delivered += delivered;
-				total_pending += pending;
-				total_booked_kg += flt(s.booked_kg);
-				total_delivered_kg += flt(s.delivered_kg);
-				total_pending_kg += pending_kg;
-				total_amount += pending * flt(s.rate);
-
-				html += '<tr>';
-				html += '<td style="padding:5px 8px;color:#718096;">' + (i + 1) + '</td>';
-				html += '<td style="padding:5px 8px;"><a href="/app/deal/' + s.deal_name + '" style="font-weight:600;">' + s.deal_name + '</a></td>';
-				html += '<td style="padding:5px 8px;color:#718096;">' + frappe.datetime.str_to_user(s.soda_date) + '</td>';
-				html += '<td style="padding:5px 8px;font-weight:500;">' + (s.item_name || s.item) + '</td>';
-				html += '<td style="padding:5px 8px;">' + s.pack_size + '</td>';
-				html += '<td style="text-align:right;padding:5px 8px;">' + deal_qty + '</td>';
-				html += '<td style="text-align:right;padding:5px 8px;color:#718096;">' + delivered + '</td>';
-				html += '<td style="text-align:right;padding:5px 8px;font-weight:600;color:' + (pending > 0 ? '#e53e3e' : '#38a169') + ';">' + pending + '</td>';
-				html += '<td style="text-align:right;padding:5px 8px;font-weight:600;color:#805ad5;">' + pending_kg.toFixed(2) + '</td>';
-				html += '<td style="text-align:right;padding:5px 8px;">' + format_number(s.rate) + '</td>';
-				html += '</tr>';
-			});
-
-			html += '</tbody>';
-			html += '<tfoot style="background:#f7fafc;font-weight:bold;">';
-			html += '<tr>';
-			html += '<td colspan="5" style="padding:6px 8px;">Total (Packs)</td>';
-			html += '<td style="text-align:right;padding:6px 8px;">' + total_deal_qty + '</td>';
-			html += '<td style="text-align:right;padding:6px 8px;">' + total_delivered + '</td>';
-			html += '<td style="text-align:right;padding:6px 8px;color:#e53e3e;">' + total_pending + '</td>';
-			html += '<td></td>';
-			html += '<td style="text-align:right;padding:6px 8px;">&#8377; ' + format_number(total_amount) + '</td>';
-			html += '</tr>';
-			html += '<tr style="background:#edf2f7;">';
-			html += '<td colspan="5" style="padding:6px 8px;">Total (KG)</td>';
-			html += '<td style="text-align:right;padding:6px 8px;">' + total_booked_kg.toFixed(2) + '</td>';
-			html += '<td style="text-align:right;padding:6px 8px;">' + total_delivered_kg.toFixed(2) + '</td>';
-			html += '<td style="text-align:right;padding:6px 8px;color:#e53e3e;">' + total_pending_kg.toFixed(2) + '</td>';
-			html += '<td></td><td></td>';
-			html += '</tr></tfoot>';
-			html += '</table></div>';
-
-			wrapper.html(html);
-		}
+	frappe.call({
+		method: 'trustbit_mandi.trustbit_mandi.doctype.mandi_stock_entry.mandi_stock_entry.get_current_stock',
+		callback: function(r) { stock_data = r.message || []; render_when_ready(); }
 	});
 }
 

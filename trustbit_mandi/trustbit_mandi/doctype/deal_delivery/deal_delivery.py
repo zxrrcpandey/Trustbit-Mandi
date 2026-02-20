@@ -88,11 +88,53 @@ class DealDelivery(Document):
 		"""Update Deal statuses only when delivery is submitted."""
 		self.db_set("status", "Loaded & Submitted")
 		self.update_deal_statuses()
+		self.create_stock_entry()
 
 	def on_cancel(self):
 		"""Recalculate Deal statuses when delivery is cancelled."""
 		self.db_set("status", "Cancelled")
 		self.update_deal_statuses()
+		self.cancel_stock_entry()
+
+	def create_stock_entry(self):
+		"""Auto-create a Mandi Stock Entry (Issue) for this delivery."""
+		from trustbit_mandi.trustbit_mandi.doctype.mandi_stock_entry.mandi_stock_entry import (
+			create_stock_entry_from_delivery,
+		)
+
+		try:
+			mse_name = create_stock_entry_from_delivery(self.name)
+			frappe.msgprint(
+				"Stock Entry {0} created.".format(
+					'<a href="/app/mandi-stock-entry/{0}">{0}</a>'.format(mse_name)
+				),
+				indicator="green",
+				alert=True,
+			)
+		except Exception as e:
+			frappe.log_error(
+				title="Stock Entry Creation Failed for {0}".format(self.name),
+				message=str(e),
+			)
+			frappe.msgprint(
+				"Warning: Could not auto-create stock entry. Error: {0}".format(str(e)),
+				indicator="orange",
+				alert=True,
+			)
+
+	def cancel_stock_entry(self):
+		"""Cancel linked Mandi Stock Entry when delivery is cancelled."""
+		mse_name = frappe.db.get_value(
+			"Mandi Stock Entry", {"deal_delivery": self.name, "docstatus": 1}
+		)
+		if mse_name:
+			mse = frappe.get_doc("Mandi Stock Entry", mse_name)
+			mse.cancel()
+			frappe.msgprint(
+				"Stock Entry {0} cancelled.".format(mse_name),
+				indicator="orange",
+				alert=True,
+			)
 
 	def on_trash(self):
 		"""Track affected deals before deletion (only drafts can be deleted)."""
