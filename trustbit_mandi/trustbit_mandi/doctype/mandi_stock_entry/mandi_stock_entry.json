@@ -8,6 +8,8 @@
   "section_entry",
   "posting_date",
   "entry_type",
+  "warehouse",
+  "company",
   "column_break_entry",
   "status",
   "amended_from",
@@ -16,6 +18,7 @@
   "supplier_name",
   "column_break_reference",
   "deal_delivery",
+  "erp_stock_entry",
   "section_items",
   "items",
   "section_totals",
@@ -48,6 +51,24 @@
    "label": "Entry Type",
    "options": "Opening Stock\nReceipt\nIssue\nAdjustment (Increase)\nAdjustment (Decrease)",
    "reqd": 1
+  },
+  {
+   "fieldname": "warehouse",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Warehouse",
+   "options": "Warehouse",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "warehouse.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_entry",
@@ -101,6 +122,14 @@
    "fieldtype": "Link",
    "label": "Deal Delivery",
    "options": "Deal Delivery",
+   "read_only": 1
+  },
+  {
+   "fieldname": "erp_stock_entry",
+   "fieldtype": "Link",
+   "label": "ERPNext Stock Entry",
+   "no_copy": 1,
+   "options": "Stock Entry",
    "read_only": 1
   },
   {
@@ -159,7 +188,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-02-20 10:00:00.000000",
+ "modified": "2026-02-20 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Trustbit Mandi",
  "name": "Mandi Stock Entry",
@@ -197,7 +226,7 @@
    "write": 1
   }
  ],
- "search_fields": "entry_type,supplier_name",
+ "search_fields": "entry_type,warehouse,supplier_name",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [

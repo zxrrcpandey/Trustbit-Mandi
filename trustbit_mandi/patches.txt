@@ -10,3 +10,4 @@ trustbit_mandi.patches.v1_1.fix_deal_item_status_after_kg
 trustbit_mandi.patches.v1_1.submit_existing_deliveries
 trustbit_mandi.patches.v1_1.fix_delivery_item_pack_weight
 trustbit_mandi.patches.v1_2.create_stock_entries_for_existing_deliveries
+trustbit_mandi.patches.v1_2.integrate_erp_stock_module

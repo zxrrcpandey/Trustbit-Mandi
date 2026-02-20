@@ -24,6 +24,16 @@ frappe.ui.form.on('Mandi Stock Entry', {
 			);
 		}
 
+		// Show linked ERPNext Stock Entry
+		if (frm.doc.erp_stock_entry) {
+			frm.dashboard.add_comment(
+				__('ERPNext Stock Entry: <a href="/app/stock-entry/{0}">{0}</a>',
+					[frm.doc.erp_stock_entry]),
+				'green',
+				true
+			);
+		}
+
 		// Set item/pack_size filters
 		frm.set_query('item', 'items', function() {
 			return { filters: { 'disabled': 0 } };
@@ -31,11 +41,29 @@ frappe.ui.form.on('Mandi Stock Entry', {
 		frm.set_query('pack_size', 'items', function() {
 			return { filters: { 'is_active': 1 } };
 		});
+
+		// Filter warehouse: non-group only
+		frm.set_query('warehouse', function() {
+			return {
+				filters: {
+					'is_group': 0
+				}
+			};
+		});
 	},
 
 	entry_type: function(frm) {
 		// Show/hide supplier based on entry type
 		frm.toggle_reqd('supplier', frm.doc.entry_type === 'Receipt');
+
+		// Set default warehouse if not already set
+		if (frm.doc.__islocal && !frm.doc.warehouse) {
+			frappe.db.get_value('Company', 'Trustbit Mandi', 'abbr', function(r) {
+				if (r && r.abbr) {
+					frm.set_value('warehouse', 'Stores - ' + r.abbr);
+				}
+			});
+		}
 	}
 });
 
