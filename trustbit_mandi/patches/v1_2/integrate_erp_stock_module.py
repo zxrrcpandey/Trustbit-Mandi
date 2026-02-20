@@ -58,10 +58,10 @@ def update_items_for_stock(uom_name):
 	for item_code in all_items:
 		if not frappe.db.exists("Item", item_code):
 			continue
-		frappe.db.set_value(
-			"Item", item_code,
-			{"is_stock_item": 1, "stock_uom": uom_name},
-			update_modified=False,
+		# Use raw SQL — frappe.db.set_value can silently fail due to ORM caching
+		frappe.db.sql(
+			"UPDATE `tabItem` SET is_stock_item=1, stock_uom=%s WHERE name=%s",
+			(uom_name, item_code),
 		)
 
 
@@ -121,7 +121,9 @@ def create_erp_stock_entries_for_existing():
 		try:
 			mse = frappe.get_doc("Mandi Stock Entry", entry.name)
 			mse.create_erp_stock_entry()
+			frappe.db.commit()
 		except Exception:
+			frappe.db.rollback()
 			frappe.log_error(
 				title="Patch: ERPNext SE creation failed for {0}".format(entry.name)
 			)
