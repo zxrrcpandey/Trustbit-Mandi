@@ -1,7 +1,10 @@
 # Copyright (c) 2026, Trustbit Software and contributors
 # For license information, please see license.txt
 
+import json
+
 import frappe
+from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt, now_datetime
 
@@ -116,3 +119,57 @@ def get_rate_for_pack_size(price_list_area, item, pack_size, as_of_datetime=None
 		"price_list_name": latest.get("name"),
 		"effective_datetime": str(latest.get("effective_datetime"))
 	}
+
+
+@frappe.whitelist()
+def get_items_with_prices(price_list_area):
+	"""Get all enabled items with their latest price for the given area."""
+	return frappe.db.sql("""
+		SELECT i.name as item, i.item_name,
+			dpl.base_price_50kg as current_price
+		FROM `tabItem` i
+		LEFT JOIN `tabDeal Price List` dpl ON dpl.item = i.name
+			AND dpl.price_list_area = %(area)s
+			AND dpl.is_active = 1
+			AND dpl.effective_datetime = (
+				SELECT MAX(dpl2.effective_datetime)
+				FROM `tabDeal Price List` dpl2
+				WHERE dpl2.price_list_area = %(area)s
+				  AND dpl2.item = i.name
+				  AND dpl2.is_active = 1
+				  AND dpl2.effective_datetime <= NOW()
+			)
+		WHERE i.disabled = 0
+		ORDER BY i.item_name
+	""", {"area": price_list_area}, as_dict=True)
+
+
+@frappe.whitelist()
+def bulk_update_prices(price_list_area, updates):
+	"""Create new Deal Price List records for multiple items at once."""
+	if isinstance(updates, str):
+		updates = json.loads(updates)
+
+	if not updates:
+		frappe.throw(_("No price updates provided"))
+
+	count = 0
+	effective = now_datetime()
+
+	for row in updates:
+		item = row.get("item")
+		base_price = flt(row.get("base_price_50kg"))
+		if not item or base_price <= 0:
+			continue
+
+		dpl = frappe.new_doc("Deal Price List")
+		dpl.price_list_area = price_list_area
+		dpl.item = item
+		dpl.base_price_50kg = base_price
+		dpl.effective_datetime = effective
+		dpl.is_active = 1
+		dpl.insert(ignore_permissions=True)
+		count += 1
+
+	frappe.db.commit()
+	return count
