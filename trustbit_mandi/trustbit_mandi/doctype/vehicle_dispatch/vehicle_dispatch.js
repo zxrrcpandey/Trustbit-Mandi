@@ -523,6 +523,14 @@ function add_items_to_vehicle(frm, customer, rows, dialog) {
 		return;
 	}
 
+	// Group items by Deal (soda) — one DD per Deal → one VDI row per Deal
+	let deal_groups = {};
+	items_to_send.forEach(function(item) {
+		let deal = item.soda || '_no_deal';
+		if (!deal_groups[deal]) deal_groups[deal] = [];
+		deal_groups[deal].push(item);
+	});
+
 	// Store pending items for server-side DD creation on save
 	let pending = [];
 	try {
@@ -530,50 +538,51 @@ function add_items_to_vehicle(frm, customer, rows, dialog) {
 	} catch(e) {
 		pending = [];
 	}
-	pending.push({
-		customer: customer,
-		items: items_to_send
+	// Add one entry per Deal
+	Object.keys(deal_groups).forEach(function(deal_key) {
+		pending.push({
+			customer: customer,
+			items: deal_groups[deal_key]
+		});
 	});
 	frm.doc._pending_auto_deliveries = JSON.stringify(pending);
 
-	// Get customer_name from first pending item
-	let customer_name = '';
-	if (rows.length > 0) {
-		customer_name = rows[0].item_name ? customer : customer;
-	}
-	// Fetch customer_name
+	// Fetch customer_name then add placeholder VDI rows
 	frappe.db.get_value('Customer', customer, 'customer_name', function(r) {
 		let cname = (r && r.customer_name) || customer;
 
-		// Calculate totals for placeholder row
-		let total_kg = 0;
-		let total_packs = 0;
-		let total_amount = 0;
-		items_to_send.forEach(function(item) {
-			let qty = flt(item.deliver_qty);
-			let wt = flt(item.pack_weight_kg);
-			total_packs += qty;
-			total_kg += qty * wt;
-			total_amount += qty * flt(item.rate);
-		});
+		// Add one placeholder VDI row per Deal
+		Object.keys(deal_groups).forEach(function(deal_key) {
+			let group_items = deal_groups[deal_key];
+			let total_kg = 0;
+			let total_packs = 0;
+			let total_amount = 0;
+			group_items.forEach(function(item) {
+				let qty = flt(item.deliver_qty);
+				let wt = flt(item.pack_weight_kg);
+				total_packs += qty;
+				total_kg += qty * wt;
+				total_amount += qty * flt(item.rate);
+			});
 
-		// Add placeholder VDI row (deal_delivery empty — filled on save)
-		let row = frm.add_child('deliveries');
-		row.customer = customer;
-		row.customer_name = cname;
-		row.delivery_date = frm.doc.dispatch_date;
-		row.total_packs = total_packs;
-		row.total_kg = total_kg;
-		row.total_amount = total_amount;
-		row.loaded_kg = total_kg;
-		// deal_delivery will be set by server in before_save
+			let row = frm.add_child('deliveries');
+			row.customer = customer;
+			row.customer_name = cname;
+			row.delivery_date = frm.doc.dispatch_date;
+			row.total_packs = total_packs;
+			row.total_kg = total_kg;
+			row.total_amount = total_amount;
+			row.loaded_kg = total_kg;
+			// deal_delivery will be set by server in before_save
+		});
 
 		frm.refresh_field('deliveries');
 		frm.dirty();
 		dialog.hide();
 
+		let deal_count = Object.keys(deal_groups).length;
 		frappe.show_alert({
-			message: __('Items added. Save the Vehicle Dispatch to create the delivery record.'),
+			message: __('{0} delivery record(s) will be created on save.', [deal_count]),
 			indicator: 'blue'
 		}, 5);
 
