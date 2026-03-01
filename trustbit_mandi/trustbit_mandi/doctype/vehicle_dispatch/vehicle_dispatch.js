@@ -546,31 +546,9 @@ function add_items_to_vehicle(frm, customer, rows, dialog) {
 	});
 	frm.doc._pending_auto_deliveries = JSON.stringify(pending);
 
-	// Add placeholder VDI rows per Deal (replaced on save by server)
-	Object.keys(deal_groups).forEach(function(deal_key) {
-		let group_items = deal_groups[deal_key];
-		let total_kg = 0;
-		let total_packs = 0;
-		let total_amount = 0;
-		group_items.forEach(function(item) {
-			total_packs += flt(item.deliver_qty);
-			total_kg += flt(item.deliver_qty) * flt(item.pack_weight_kg);
-			total_amount += flt(item.deliver_qty) * flt(item.rate);
-		});
-
-		let row = frm.add_child('deliveries');
-		row.customer = customer;
-		row.delivery_date = frm.doc.dispatch_date;
-		row.total_packs = total_packs;
-		row.total_kg = total_kg;
-		row.total_amount = total_amount;
-		row.loaded_kg = total_kg;
-	});
-
-	frm.refresh_field('deliveries');
+	// No placeholder rows — server creates VDI rows in before_save
 	dialog.hide();
 
-	// Auto-save immediately — DDs created in before_save on server
 	let deal_count = Object.keys(deal_groups).length;
 	frappe.show_alert({
 		message: __('Creating {0} delivery record(s)...', [deal_count]),
