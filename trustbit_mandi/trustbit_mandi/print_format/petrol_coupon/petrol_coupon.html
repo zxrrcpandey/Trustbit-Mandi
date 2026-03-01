@@ -2,8 +2,8 @@
 	.petrol-coupon {
 		font-family: Arial, sans-serif;
 		font-size: 13px;
-		padding: 20px;
-		max-width: 700px;
+		padding: 20px 30px;
+		max-width: 500px;
 		margin: 0 auto;
 		border: 3px solid #000;
 	}
@@ -15,13 +15,13 @@
 	}
 	.petrol-coupon .header h2 {
 		margin: 0;
-		font-size: 22px;
+		font-size: 20px;
 		font-weight: bold;
 		letter-spacing: 2px;
 	}
 	.petrol-coupon .header h3 {
 		margin: 5px 0 0 0;
-		font-size: 16px;
+		font-size: 15px;
 		font-weight: bold;
 		color: #333;
 		letter-spacing: 1px;
@@ -29,65 +29,49 @@
 	.petrol-coupon .coupon-id {
 		display: flex;
 		justify-content: space-between;
-		margin-bottom: 15px;
-		font-size: 12px;
+		margin-bottom: 12px;
+		font-size: 11px;
 		color: #555;
 	}
 	.petrol-coupon table {
 		width: 100%;
 		border-collapse: collapse;
-		margin-bottom: 12px;
+		margin-bottom: 10px;
 	}
 	.petrol-coupon table td {
-		padding: 8px 12px;
+		padding: 7px 10px;
 		border: 1px solid #333;
 		vertical-align: middle;
 	}
 	.petrol-coupon table td.label-cell {
 		font-weight: bold;
-		width: 30%;
+		width: 35%;
 		background: #f0f0f0;
 		font-size: 12px;
 	}
 	.petrol-coupon table td.value-cell {
-		width: 70%;
-		font-size: 14px;
+		width: 65%;
+		font-size: 13px;
 	}
-	.petrol-coupon .load-summary {
-		border: 2px solid #000;
-		padding: 12px;
+	.petrol-coupon .amount-box {
+		border: 3px solid #000;
+		padding: 15px;
 		margin: 15px 0;
 		text-align: center;
-		background: #f9f9f9;
 	}
-	.petrol-coupon .load-summary .label {
+	.petrol-coupon .amount-box .label {
 		font-size: 12px;
 		color: #555;
-		margin-bottom: 4px;
+		margin-bottom: 5px;
+		letter-spacing: 1px;
 	}
-	.petrol-coupon .load-summary .value {
-		font-size: 24px;
+	.petrol-coupon .amount-box .value {
+		font-size: 32px;
 		font-weight: bold;
-	}
-	.petrol-coupon .items-table {
-		margin: 12px 0;
-	}
-	.petrol-coupon .items-table th {
-		background: #333;
-		color: #fff;
-		padding: 6px 10px;
-		font-size: 11px;
-		text-align: left;
-	}
-	.petrol-coupon .items-table td {
-		padding: 5px 10px;
-		font-size: 12px;
-	}
-	.petrol-coupon .items-table tr:nth-child(even) {
-		background: #f5f5f5;
+		letter-spacing: 1px;
 	}
 	.petrol-coupon .signature-section {
-		margin-top: 40px;
+		margin-top: 35px;
 		display: flex;
 		justify-content: space-between;
 	}
@@ -99,7 +83,7 @@
 		font-size: 11px;
 	}
 	.petrol-coupon .note {
-		margin-top: 15px;
+		margin-top: 12px;
 		font-size: 10px;
 		color: #666;
 		text-align: center;
@@ -124,15 +108,10 @@
 		<span><strong>Date:</strong> {{ frappe.format(doc.dispatch_date, {'fieldtype': 'Date'}) }}</span>
 	</div>
 
-	<!-- Vehicle & Driver Details -->
 	<table>
 		<tr>
 			<td class="label-cell">Vehicle No.</td>
 			<td class="value-cell" style="font-size:18px;font-weight:bold;letter-spacing:1px;">{{ doc.vehicle or '' }}</td>
-		</tr>
-		<tr>
-			<td class="label-cell">Vehicle Type</td>
-			<td class="value-cell">{{ doc.vehicle_type or '' }}</td>
 		</tr>
 		<tr>
 			<td class="label-cell">Driver Name</td>
@@ -144,64 +123,10 @@
 		</tr>
 	</table>
 
-	<!-- Load Summary -->
-	<div class="load-summary">
-		<div class="label">TOTAL LOADED WEIGHT</div>
-		<div class="value">{{ "%.2f"|format(doc.total_loaded_kg or 0) }} KG</div>
-		<div style="font-size:12px;color:#555;margin-top:4px;">
-			{{ "%.0f"|format(doc.total_packs or 0) }} Packs
-			| {{ doc.total_customers or 0 }} Customer{{ 's' if (doc.total_customers or 0) != 1 else '' }}
-			| Capacity: {{ "%.0f"|format(doc.vehicle_capacity_kg or 0) }} KG
-		</div>
+	<div class="amount-box">
+		<div class="label">PETROL AMOUNT</div>
+		<div class="value">{{ frappe.utils.fmt_money(doc.petrol_amount, currency='INR') }}</div>
 	</div>
-
-	<!-- Items Summary -->
-	{% set customer_items = {} %}
-	{% for row in doc.load_items %}
-		{% if row.customer not in customer_items %}
-			{% set _ = customer_items.update({row.customer: []}) %}
-		{% endif %}
-		{% set _ = customer_items[row.customer].append(row) %}
-	{% endfor %}
-
-	<table class="items-table">
-		<thead>
-			<tr>
-				<th>#</th>
-				<th>Customer</th>
-				<th>Item</th>
-				<th style="text-align:right;">Packs</th>
-				<th style="text-align:right;">KG</th>
-			</tr>
-		</thead>
-		<tbody>
-			{% set counter = {'val': 0} %}
-			{% for row in doc.load_items %}
-				{% set _ = counter.update({'val': counter.val + 1}) %}
-				<tr>
-					<td>{{ counter.val }}</td>
-					<td>{{ row.customer_name or row.customer or '' }}</td>
-					<td>{{ row.item or '' }} ({{ row.pack_size or '' }})</td>
-					<td style="text-align:right;">{{ "%.0f"|format(row.qty or 0) }}</td>
-					<td style="text-align:right;">{{ "%.2f"|format(row.kg or 0) }}</td>
-				</tr>
-			{% endfor %}
-			<tr style="font-weight:bold;background:#e0e0e0;">
-				<td colspan="3" style="text-align:right;">Total</td>
-				<td style="text-align:right;">{{ "%.0f"|format(doc.total_packs or 0) }}</td>
-				<td style="text-align:right;">{{ "%.2f"|format(doc.total_loaded_kg or 0) }}</td>
-			</tr>
-		</tbody>
-	</table>
-
-	{% if doc.remarks %}
-	<table>
-		<tr>
-			<td class="label-cell">Remarks</td>
-			<td class="value-cell">{{ doc.remarks }}</td>
-		</tr>
-	</table>
-	{% endif %}
 
 	<div class="signature-section">
 		<div class="signature-box">
@@ -215,7 +140,7 @@
 	</div>
 
 	<div class="note">
-		This coupon is valid only for the dispatch date mentioned above.
-		| Dispatch: {{ doc.name }}
+		Valid only for {{ frappe.format(doc.dispatch_date, {'fieldtype': 'Date'}) }}
+		| {{ doc.name }}
 	</div>
 </div>

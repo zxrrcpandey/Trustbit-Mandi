@@ -13,6 +13,7 @@
   "status",
   "driver_name",
   "driver_mobile",
+  "petrol_amount",
   "amended_from",
   "section_capacity",
   "vehicle_capacity_kg",
@@ -95,6 +96,12 @@
    "fieldtype": "Data",
    "label": "Driver Mobile",
    "options": "Phone"
+  },
+  {
+   "default": "0",
+   "fieldname": "petrol_amount",
+   "fieldtype": "Currency",
+   "label": "Petrol Amount"
   },
   {
    "fieldname": "amended_from",
@@ -256,7 +263,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-03-02 17:00:00.000000",
+ "modified": "2026-03-02 19:00:00.000000",
  "modified_by": "Administrator",
  "module": "Trustbit Mandi",
  "name": "Vehicle Dispatch",
