@@ -12,7 +12,9 @@
   "column_break_item",
   "total_packs",
   "total_kg",
-  "total_amount"
+  "loaded_kg",
+  "total_amount",
+  "loaded_amount"
  ],
  "fields": [
   {
@@ -53,31 +55,42 @@
    "fetch_from": "deal_delivery.total_delivery_qty",
    "fieldname": "total_packs",
    "fieldtype": "Float",
-   "in_list_view": 1,
-   "label": "Total Packs",
+   "label": "DD Packs",
    "read_only": 1
   },
   {
    "fetch_from": "deal_delivery.total_delivery_kg",
    "fieldname": "total_kg",
    "fieldtype": "Float",
-   "in_list_view": 1,
-   "label": "Total KG",
+   "label": "DD Total KG",
    "read_only": 1
+  },
+  {
+   "fieldname": "loaded_kg",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Loaded KG",
+   "reqd": 1
   },
   {
    "fetch_from": "deal_delivery.total_amount",
    "fieldname": "total_amount",
    "fieldtype": "Currency",
+   "label": "DD Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "loaded_amount",
+   "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Total Amount",
+   "label": "Loaded Amount",
    "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-02-19 10:00:00.000000",
+ "modified": "2026-03-02 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Trustbit Mandi",
  "name": "Vehicle Dispatch Item",

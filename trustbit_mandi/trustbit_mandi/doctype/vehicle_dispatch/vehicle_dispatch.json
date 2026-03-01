@@ -29,6 +29,13 @@
   "total_amount",
   "column_break_totals",
   "total_customers",
+  "section_payment",
+  "freight_amount",
+  "column_break_payment",
+  "total_paid",
+  "balance_amount",
+  "section_payments_table",
+  "payments",
   "section_remarks",
   "remarks"
  ],
@@ -185,6 +192,45 @@
    "read_only": 1
   },
   {
+   "fieldname": "section_payment",
+   "fieldtype": "Section Break",
+   "label": "Payment Details"
+  },
+  {
+   "default": "0",
+   "fieldname": "freight_amount",
+   "fieldtype": "Currency",
+   "label": "Freight Amount"
+  },
+  {
+   "fieldname": "column_break_payment",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_paid",
+   "fieldtype": "Currency",
+   "label": "Total Paid",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "balance_amount",
+   "fieldtype": "Currency",
+   "label": "Balance Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_payments_table",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "payments",
+   "fieldtype": "Table",
+   "label": "Payments",
+   "options": "Vehicle Dispatch Payment"
+  },
+  {
    "fieldname": "section_remarks",
    "fieldtype": "Section Break"
   },
@@ -197,7 +243,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-02-19 10:00:00.000000",
+ "modified": "2026-03-02 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Trustbit Mandi",
  "name": "Vehicle Dispatch",

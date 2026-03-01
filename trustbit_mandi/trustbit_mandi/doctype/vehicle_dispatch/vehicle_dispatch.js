@@ -25,8 +25,35 @@ frappe.ui.form.on('Vehicle Dispatch', {
 		setTimeout(function() {
 			render_capacity_bar(frm);
 		}, 500);
+	},
+
+	freight_amount: function(frm) {
+		calculate_payment_balance(frm);
 	}
 });
+
+frappe.ui.form.on('Vehicle Dispatch Payment', {
+	amount: function(frm) {
+		calculate_payment_balance(frm);
+	},
+	payments_remove: function(frm) {
+		calculate_payment_balance(frm);
+	}
+});
+
+
+// ============================================================
+// Payment Helpers
+// ============================================================
+
+function calculate_payment_balance(frm) {
+	let total_paid = 0;
+	(frm.doc.payments || []).forEach(function(row) {
+		total_paid += flt(row.amount);
+	});
+	frm.set_value('total_paid', total_paid);
+	frm.set_value('balance_amount', flt(frm.doc.freight_amount) - total_paid);
+}
 
 
 // ============================================================
@@ -74,12 +101,13 @@ function render_capacity_bar(frm) {
 
 function get_deliveries_dialog(frm) {
 	frappe.call({
-		method: 'trustbit_mandi.trustbit_mandi.doctype.vehicle_dispatch.vehicle_dispatch.get_undispatched_deliveries',
+		method: 'trustbit_mandi.trustbit_mandi.doctype.vehicle_dispatch.vehicle_dispatch.get_available_deliveries',
+		args: { exclude_dispatch: frm.doc.name },
 		freeze: true,
 		freeze_message: __('Loading deliveries...'),
 		callback: function(r) {
 			if (!r.message || r.message.length === 0) {
-				frappe.msgprint(__('No undispatched deliveries found.'));
+				frappe.msgprint(__('No available deliveries found.'));
 				return;
 			}
 			show_deliveries_dialog(frm, r.message);
@@ -98,11 +126,14 @@ function show_deliveries_dialog(frm, deliveries) {
 	table_html += '<th style="width:30px;"><input type="checkbox" class="check-all"></th>';
 	table_html += '<th>Delivery</th><th>Customer</th><th>Date</th>';
 	table_html += '<th style="text-align:right;">Packs</th>';
-	table_html += '<th style="text-align:right;">KG</th>';
+	table_html += '<th style="text-align:right;">DD Total KG</th>';
+	table_html += '<th style="text-align:right;">Remaining KG</th>';
+	table_html += '<th style="width:120px;">Load KG</th>';
 	table_html += '<th style="text-align:right;">Amount</th>';
 	table_html += '</tr></thead><tbody>';
 
 	deliveries.forEach(function(d, idx) {
+		let remaining = flt(d.remaining_kg);
 		table_html += '<tr>';
 		table_html += '<td><input type="checkbox" class="delivery-check" data-idx="' + idx + '"></td>';
 		table_html += '<td>' + d.name + '</td>';
@@ -110,6 +141,8 @@ function show_deliveries_dialog(frm, deliveries) {
 		table_html += '<td>' + d.delivery_date + '</td>';
 		table_html += '<td style="text-align:right;">' + flt(d.total_packs) + '</td>';
 		table_html += '<td style="text-align:right;">' + flt(d.total_kg).toFixed(2) + '</td>';
+		table_html += '<td style="text-align:right;color:#38a169;font-weight:bold;">' + remaining.toFixed(2) + '</td>';
+		table_html += '<td><input type="number" class="form-control input-sm load-kg-input" data-idx="' + idx + '" value="' + remaining.toFixed(2) + '" min="0" max="' + remaining.toFixed(2) + '" step="0.01" style="width:110px;text-align:right;"></td>';
 		table_html += '<td style="text-align:right;">' + format_currency(flt(d.total_amount)) + '</td>';
 		table_html += '</tr>';
 	});
@@ -117,12 +150,12 @@ function show_deliveries_dialog(frm, deliveries) {
 	table_html += '</tbody></table></div>';
 
 	// Footer with summary
-	let remaining = capacity - already_loaded;
+	let remaining_cap = capacity - already_loaded;
 	table_html += '<div class="delivery-footer" style="padding:8px;background:#f8f9fa;border-radius:4px;margin-top:8px;">';
 	table_html += '<span>Selected: <b class="selected-count">0</b></span>';
-	table_html += ' &nbsp;|&nbsp; Selected KG: <b class="selected-kg">0</b>';
+	table_html += ' &nbsp;|&nbsp; Load KG: <b class="selected-kg">0</b>';
 	if (capacity) {
-		table_html += ' &nbsp;|&nbsp; Remaining Capacity: <b class="remaining-cap">' + remaining.toFixed(0) + '</b> KG';
+		table_html += ' &nbsp;|&nbsp; Remaining Capacity: <b class="remaining-cap">' + remaining_cap.toFixed(0) + '</b> KG';
 	}
 	table_html += '</div>';
 
@@ -137,7 +170,13 @@ function show_deliveries_dialog(frm, deliveries) {
 			let selected = [];
 			d.$wrapper.find('.delivery-check:checked').each(function() {
 				let idx = $(this).data('idx');
-				selected.push(deliveries[idx]);
+				let load_kg = parseFloat(d.$wrapper.find('.load-kg-input[data-idx="' + idx + '"]').val()) || 0;
+				if (load_kg > 0) {
+					selected.push({
+						delivery: deliveries[idx],
+						load_kg: load_kg
+					});
+				}
 			});
 
 			if (selected.length === 0) {
@@ -146,7 +185,8 @@ function show_deliveries_dialog(frm, deliveries) {
 			}
 
 			// Add to child table
-			selected.forEach(function(del) {
+			selected.forEach(function(s) {
+				let del = s.delivery;
 				let row = frm.add_child('deliveries');
 				row.deal_delivery = del.name;
 				row.customer = del.customer;
@@ -155,6 +195,8 @@ function show_deliveries_dialog(frm, deliveries) {
 				row.total_packs = flt(del.total_packs);
 				row.total_kg = flt(del.total_kg);
 				row.total_amount = flt(del.total_amount);
+				row.loaded_kg = s.load_kg;
+				// loaded_amount calculated in before_save
 			});
 
 			frm.refresh_field('deliveries');
@@ -171,24 +213,28 @@ function show_deliveries_dialog(frm, deliveries) {
 		d.$wrapper.find('.delivery-check').prop('checked', checked).trigger('change');
 	});
 
-	// Update footer on checkbox change
-	d.$wrapper.on('change', '.delivery-check', function() {
+	// Update footer on checkbox change or load kg change
+	function update_footer() {
 		let total_kg = 0;
 		let count = 0;
 		d.$wrapper.find('.delivery-check:checked').each(function() {
 			let idx = $(this).data('idx');
-			total_kg += flt(deliveries[idx].total_kg);
+			let load_val = parseFloat(d.$wrapper.find('.load-kg-input[data-idx="' + idx + '"]').val()) || 0;
+			total_kg += load_val;
 			count++;
 		});
 		d.$wrapper.find('.selected-count').text(count);
 		d.$wrapper.find('.selected-kg').text(total_kg.toFixed(2));
 		if (capacity) {
-			let rem = remaining - total_kg;
+			let rem = remaining_cap - total_kg;
 			let $cap = d.$wrapper.find('.remaining-cap');
 			$cap.text(rem.toFixed(0));
 			$cap.css('color', rem < 0 ? '#e53e3e' : '#38a169');
 		}
-	});
+	}
+
+	d.$wrapper.on('change', '.delivery-check', update_footer);
+	d.$wrapper.on('input', '.load-kg-input', update_footer);
 
 	d.show();
 }
