@@ -22,23 +22,24 @@
   "capacity_utilization",
   "section_capacity_bar",
   "capacity_bar_html",
-  "section_deliveries",
-  "deliveries",
+  "section_load_items",
+  "load_items",
   "section_totals",
   "total_packs",
   "total_amount",
   "column_break_totals",
   "total_customers",
-  "section_payment",
+  "section_customer_payments",
+  "customer_payments",
+  "section_freight",
   "freight_amount",
-  "column_break_payment",
+  "column_break_freight",
   "total_paid",
   "balance_amount",
-  "section_payments_table",
+  "section_freight_payments",
   "payments",
   "section_remarks",
-  "remarks",
-  "_pending_auto_deliveries"
+  "remarks"
  ],
  "fields": [
   {
@@ -152,15 +153,15 @@
    "label": "Capacity Bar"
   },
   {
-   "fieldname": "section_deliveries",
+   "fieldname": "section_load_items",
    "fieldtype": "Section Break",
-   "label": "Deliveries"
+   "label": "Items to Load"
   },
   {
-   "fieldname": "deliveries",
+   "fieldname": "load_items",
    "fieldtype": "Table",
-   "label": "Deliveries",
-   "options": "Vehicle Dispatch Item"
+   "label": "Load Items",
+   "options": "Vehicle Dispatch Load Item"
   },
   {
    "fieldname": "section_totals",
@@ -193,9 +194,20 @@
    "read_only": 1
   },
   {
-   "fieldname": "section_payment",
+   "fieldname": "section_customer_payments",
    "fieldtype": "Section Break",
-   "label": "Payment Details"
+   "label": "Customer Payments"
+  },
+  {
+   "fieldname": "customer_payments",
+   "fieldtype": "Table",
+   "label": "Customer Payments",
+   "options": "Vehicle Dispatch Customer Payment"
+  },
+  {
+   "fieldname": "section_freight",
+   "fieldtype": "Section Break",
+   "label": "Freight"
   },
   {
    "default": "0",
@@ -204,7 +216,7 @@
    "label": "Freight Amount"
   },
   {
-   "fieldname": "column_break_payment",
+   "fieldname": "column_break_freight",
    "fieldtype": "Column Break"
   },
   {
@@ -222,13 +234,13 @@
    "read_only": 1
   },
   {
-   "fieldname": "section_payments_table",
+   "fieldname": "section_freight_payments",
    "fieldtype": "Section Break"
   },
   {
    "fieldname": "payments",
    "fieldtype": "Table",
-   "label": "Payments",
+   "label": "Freight Payments",
    "options": "Vehicle Dispatch Payment"
   },
   {
@@ -239,20 +251,12 @@
    "fieldname": "remarks",
    "fieldtype": "Small Text",
    "label": "Remarks"
-  },
-  {
-   "fieldname": "_pending_auto_deliveries",
-   "fieldtype": "Long Text",
-   "hidden": 1,
-   "label": "Pending Auto Deliveries",
-   "no_copy": 1,
-   "print_hide": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-03-02 14:00:00.000000",
+ "modified": "2026-03-02 17:00:00.000000",
  "modified_by": "Administrator",
  "module": "Trustbit Mandi",
  "name": "Vehicle Dispatch",

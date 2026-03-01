@@ -9,18 +9,13 @@ frappe.ui.form.on('Vehicle Dispatch', {
 			frm.page.set_indicator(__('Cancelled'), 'red');
 		}
 
-		// Render capacity bar
 		render_capacity_bar(frm);
 
-		// Buttons only in draft mode
+		// "Get Deliveries" button only in draft mode
 		if (frm.doc.docstatus === 0) {
 			frm.add_custom_button(__('Get Deliveries'), function() {
 				get_deliveries_dialog(frm);
 			}).addClass('btn-primary');
-
-			frm.add_custom_button(__('Link Existing Delivery'), function() {
-				link_existing_delivery_dialog(frm);
-			});
 		}
 	},
 
@@ -31,25 +26,98 @@ frappe.ui.form.on('Vehicle Dispatch', {
 	},
 
 	freight_amount: function(frm) {
-		calculate_payment_balance(frm);
+		calculate_freight_balance(frm);
 	}
 });
 
 frappe.ui.form.on('Vehicle Dispatch Payment', {
 	amount: function(frm) {
-		calculate_payment_balance(frm);
+		calculate_freight_balance(frm);
 	},
 	payments_remove: function(frm) {
-		calculate_payment_balance(frm);
+		calculate_freight_balance(frm);
+	}
+});
+
+frappe.ui.form.on('Vehicle Dispatch Load Item', {
+	qty: function(frm, cdt, cdn) {
+		recalc_load_item_row(frm, cdt, cdn);
+	},
+	rate: function(frm, cdt, cdn) {
+		recalc_load_item_row(frm, cdt, cdn);
+	},
+	load_items_remove: function(frm) {
+		recalc_totals_from_items(frm);
+	}
+});
+
+frappe.ui.form.on('Vehicle Dispatch Customer Payment', {
+	paying_amount: function(frm, cdt, cdn) {
+		let row = locals[cdt][cdn];
+		let invoice_amt = flt(row.invoice_amount);
+		row.balance_amount = invoice_amt - flt(row.paying_amount);
+		frm.refresh_field('customer_payments');
+	},
+	customer_payments_remove: function(frm) {
+		frm.refresh_field('customer_payments');
 	}
 });
 
 
 // ============================================================
-// Payment Helpers
+// Row-level recalculation
 // ============================================================
 
-function calculate_payment_balance(frm) {
+function recalc_load_item_row(frm, cdt, cdn) {
+	let row = locals[cdt][cdn];
+	row.kg = flt(row.qty) * flt(row.pack_weight_kg);
+	row.amount = flt(row.qty) * flt(row.rate);
+	frm.refresh_field('load_items');
+	recalc_totals_from_items(frm);
+}
+
+function recalc_totals_from_items(frm) {
+	let total_kg = 0, total_packs = 0, total_amount = 0;
+	let customers = new Set();
+	(frm.doc.load_items || []).forEach(function(row) {
+		total_kg += flt(row.kg);
+		total_packs += flt(row.qty);
+		total_amount += flt(row.amount);
+		if (row.customer) customers.add(row.customer);
+	});
+	frm.set_value('total_loaded_kg', total_kg);
+	frm.set_value('total_packs', total_packs);
+	frm.set_value('total_amount', total_amount);
+	frm.set_value('total_customers', customers.size);
+	frm.set_value('remaining_capacity_kg', flt(frm.doc.vehicle_capacity_kg) - total_kg);
+	if (flt(frm.doc.vehicle_capacity_kg)) {
+		frm.set_value('capacity_utilization', (total_kg / flt(frm.doc.vehicle_capacity_kg)) * 100);
+	}
+	render_capacity_bar(frm);
+	update_customer_payment_amounts(frm);
+}
+
+function update_customer_payment_amounts(frm) {
+	// Recalculate invoice_amount for each customer payment row
+	let customer_amounts = {};
+	(frm.doc.load_items || []).forEach(function(row) {
+		if (row.customer) {
+			customer_amounts[row.customer] = (customer_amounts[row.customer] || 0) + flt(row.amount);
+		}
+	});
+	(frm.doc.customer_payments || []).forEach(function(row) {
+		row.invoice_amount = flt(customer_amounts[row.customer] || 0);
+		row.balance_amount = flt(row.invoice_amount) - flt(row.paying_amount);
+	});
+	frm.refresh_field('customer_payments');
+}
+
+
+// ============================================================
+// Freight Payment Helpers
+// ============================================================
+
+function calculate_freight_balance(frm) {
 	let total_paid = 0;
 	(frm.doc.payments || []).forEach(function(row) {
 		total_paid += flt(row.amount);
@@ -99,45 +167,60 @@ function render_capacity_bar(frm) {
 
 
 // ============================================================
-// NEW: Get Deliveries — Select from Pending Deal Items
+// Get Deliveries Dialog — Area / Customer filter
 // ============================================================
 
 function get_deliveries_dialog(frm) {
-	// Step 1: Ask for customer
 	let d = new frappe.ui.Dialog({
-		title: __('Get Deliveries - Select Customer'),
+		title: __('Get Deliveries'),
 		fields: [
+			{
+				fieldtype: 'Select',
+				fieldname: 'filter_by',
+				label: 'Filter By',
+				options: 'Area\nCustomer',
+				default: 'Area',
+				change: function() {
+					let val = d.get_value('filter_by');
+					d.set_df_property('price_list_area', 'hidden', val !== 'Area');
+					d.set_df_property('customer', 'hidden', val !== 'Customer');
+					d.set_df_property('price_list_area', 'reqd', val === 'Area');
+					d.set_df_property('customer', 'reqd', val === 'Customer');
+				}
+			},
+			{
+				fieldtype: 'Link',
+				fieldname: 'price_list_area',
+				label: 'Area',
+				options: 'Deal Price List Area',
+				reqd: 1
+			},
 			{
 				fieldtype: 'Link',
 				fieldname: 'customer',
 				label: 'Customer',
 				options: 'Customer',
-				reqd: 1
+				hidden: 1
 			}
 		],
 		primary_action_label: __('Show Pending Items'),
 		primary_action: function() {
-			let customer = d.get_value('customer');
-			if (!customer) {
-				frappe.msgprint(__('Please select a customer.'));
+			let filter_by = d.get_value('filter_by');
+			let area = filter_by === 'Area' ? d.get_value('price_list_area') : null;
+			let customer = filter_by === 'Customer' ? d.get_value('customer') : null;
+
+			if (!area && !customer) {
+				frappe.msgprint(__('Please select an Area or Customer.'));
 				return;
 			}
 			d.hide();
-			load_pending_items_for_dispatch(frm, customer);
+			load_pending_items_for_dispatch(frm, area, customer);
 		}
 	});
 	d.show();
 }
 
-function load_pending_items_for_dispatch(frm, customer) {
-	// 3 parallel API calls
-	frappe.call({
-		method: 'trustbit_mandi.trustbit_mandi.doctype.deal_delivery.deal_delivery.get_pending_deal_items',
-		args: { customer: customer },
-		async: false,
-		callback: function() {}
-	});
-
+function load_pending_items_for_dispatch(frm, area, customer) {
 	let pending_items = null;
 	let pack_sizes = null;
 	let bag_cost_map = null;
@@ -147,16 +230,16 @@ function load_pending_items_for_dispatch(frm, customer) {
 		calls_done++;
 		if (calls_done === 3) {
 			if (!pending_items || pending_items.length === 0) {
-				frappe.msgprint(__('No pending deal items found for this customer.'));
+				frappe.msgprint(__('No pending deal items found.'));
 				return;
 			}
-			show_dispatch_items_dialog(frm, customer, pending_items, pack_sizes, bag_cost_map);
+			show_dispatch_items_dialog(frm, pending_items, pack_sizes, bag_cost_map);
 		}
 	}
 
 	frappe.call({
-		method: 'trustbit_mandi.trustbit_mandi.doctype.deal_delivery.deal_delivery.get_pending_deal_items',
-		args: { customer: customer },
+		method: 'trustbit_mandi.trustbit_mandi.doctype.vehicle_dispatch.vehicle_dispatch.get_pending_items_for_dispatch',
+		args: { price_list_area: area, customer: customer },
 		callback: function(r) {
 			pending_items = r.message || [];
 			check_all_done();
@@ -180,46 +263,59 @@ function load_pending_items_for_dispatch(frm, customer) {
 	});
 }
 
-function show_dispatch_items_dialog(frm, customer, pending_items, pack_sizes, bag_cost_map) {
-	// Build pack_weight_map
+function show_dispatch_items_dialog(frm, pending_items, pack_sizes, bag_cost_map) {
 	let pack_weight_map = {};
 	pack_sizes.forEach(function(ps) {
 		pack_weight_map[ps.pack_size] = flt(ps.weight_kg);
 	});
 
-	// Build pack size dropdown options HTML
-	let pack_options_html = '';
-	pack_sizes.forEach(function(ps) {
-		pack_options_html += '<option value="' + ps.pack_size + '">' + ps.pack_size + ' (' + ps.weight_kg + ' KG)</option>';
+	// Group items by customer for display
+	let customer_groups = {};
+	pending_items.forEach(function(p) {
+		let cust = p.customer || '_unknown';
+		if (!customer_groups[cust]) {
+			customer_groups[cust] = {
+				customer: p.customer,
+				customer_name: p.customer_name,
+				items: []
+			};
+		}
+		customer_groups[cust].items.push(p);
 	});
 
-	// Build row state from pending items — all pre-checked with full pending qty
+	// Build row state
 	let rows = [];
-	pending_items.forEach(function(p, idx) {
-		let bc = flt(bag_cost_map[p.item + ':' + p.pack_size]);
-		let ppk = flt(p.price_per_kg);
-		if (ppk <= 0 && flt(p.rate) > 0 && flt(p.pack_weight_kg) > 0) {
-			ppk = (flt(p.rate) - bc) / flt(p.pack_weight_kg);
-		}
+	let row_idx = 0;
+	Object.keys(customer_groups).forEach(function(cust) {
+		let group = customer_groups[cust];
+		group.items.forEach(function(p) {
+			let bc = flt(bag_cost_map[p.item + ':' + p.pack_size]);
+			let ppk = flt(p.price_per_kg);
+			if (ppk <= 0 && flt(p.rate) > 0 && flt(p.pack_weight_kg) > 0) {
+				ppk = (flt(p.rate) - bc) / flt(p.pack_weight_kg);
+			}
 
-		rows.push({
-			idx: idx,
-			deal_name: p.deal_name,
-			deal_item_name: p.deal_item_name,
-			soda_date: p.soda_date,
-			item: p.item,
-			item_name: p.item_name,
-			pack_size: p.pack_size,
-			original_pack_size: p.pack_size,
-			pack_weight_kg: flt(p.pack_weight_kg),
-			original_pack_weight_kg: flt(p.pack_weight_kg),
-			pending_kg: flt(p.pending_kg),
-			pending_qty: flt(p.pending_qty),
-			price_per_kg: ppk,
-			deliver_qty: flt(p.pending_qty),
-			bag_cost: bc,
-			rate: flt(p.rate),
-			checked: true
+			rows.push({
+				idx: row_idx++,
+				customer: p.customer,
+				customer_name: p.customer_name,
+				deal_name: p.deal_name,
+				deal_item_name: p.deal_item_name,
+				soda_date: p.soda_date,
+				item: p.item,
+				item_name: p.item_name,
+				pack_size: p.pack_size,
+				original_pack_size: p.pack_size,
+				pack_weight_kg: flt(p.pack_weight_kg),
+				original_pack_weight_kg: flt(p.pack_weight_kg),
+				pending_kg: flt(p.pending_kg),
+				pending_packs: flt(p.pending_packs),
+				price_per_kg: ppk,
+				deliver_qty: Math.floor(flt(p.pending_packs)),
+				bag_cost: bc,
+				rate: flt(p.rate),
+				checked: true
+			});
 		});
 	});
 
@@ -230,27 +326,13 @@ function show_dispatch_items_dialog(frm, customer, pending_items, pack_sizes, ba
 		title: __('Select Items for Vehicle'),
 		size: 'extra-large',
 		fields: [
-			{
-				fieldtype: 'HTML',
-				fieldname: 'dialog_content'
-			}
+			{ fieldtype: 'HTML', fieldname: 'dialog_content' }
 		],
 		primary_action_label: __('Add to Vehicle'),
 		primary_action: function() {
-			add_items_to_vehicle(frm, customer, rows, d);
+			add_items_to_vehicle(frm, rows, d);
 		}
 	});
-
-	// Customer badge on title
-	let customer_name = '';
-	// Fetch customer_name from first pending item
-	if (pending_items.length > 0 && pending_items[0].customer_name) {
-		customer_name = pending_items[0].customer_name;
-	}
-	d.$wrapper.find('.modal-title').append(
-		' <span style="background:#e8f4fd;color:#1565c0;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:500;margin-left:8px;">'
-		+ (customer_name || customer) + '</span>'
-	);
 
 	let wrapper = d.fields_dict.dialog_content.$wrapper;
 	wrapper.css('min-height', '300px');
@@ -260,29 +342,40 @@ function show_dispatch_items_dialog(frm, customer, pending_items, pack_sizes, ba
 
 		// Info bar
 		html += '<div style="font-size:11px;color:#718096;padding:6px 10px;margin-bottom:10px;background:#f0fff4;border-left:3px solid #38a169;border-radius:4px;">'
-			+ 'All items pre-selected with full pending qty. Change <b>Pack Size</b> if loading different packs. Adjust <b>Deliver Qty</b> as needed.'
+			+ 'All items pre-selected with full pending qty. Change <b>Pack Size</b> or adjust <b>Qty</b> as needed. Uncheck items to exclude.'
 			+ '</div>';
 
 		// Table
-		html += '<div style="max-height:380px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:6px;">';
+		html += '<div style="max-height:400px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:6px;">';
 		html += '<table class="table table-sm" style="margin-bottom:0;font-size:12px;">';
 		html += '<thead style="background:#f7fafc;position:sticky;top:0;z-index:1;">';
 		html += '<tr>';
 		html += '<th style="width:30px;text-align:center;padding:7px 3px;font-size:10px;">SEL</th>';
+		html += '<th style="padding:7px 5px;font-size:10px;">CUSTOMER</th>';
 		html += '<th style="padding:7px 5px;font-size:10px;">DEAL</th>';
 		html += '<th style="padding:7px 5px;font-size:10px;">ITEM</th>';
 		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;">PENDING KG</th>';
 		html += '<th style="padding:7px 5px;font-size:10px;">PACK SIZE</th>';
-		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;">WT</th>';
 		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;">BAG COST</th>';
-		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;width:75px;">DELIVER QTY</th>';
+		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;width:75px;">QTY</th>';
 		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;">RATE</th>';
 		html += '<th style="text-align:right;padding:7px 5px;font-size:10px;">AMOUNT</th>';
 		html += '</tr></thead><tbody>';
 
+		// Render grouped by customer
+		let current_customer = null;
 		rows.forEach(function(row) {
+			// Customer header row
+			if (row.customer !== current_customer) {
+				current_customer = row.customer;
+				html += '<tr style="background:#edf2f7;">';
+				html += '<td colspan="10" style="padding:6px 10px;font-weight:700;font-size:12px;color:#2d3748;">'
+					+ (row.customer_name || row.customer)
+					+ '</td></tr>';
+			}
+
 			let amount = flt(row.deliver_qty) * flt(row.rate);
-			let pack_changed = row.pack_size && row.pack_size !== row.original_pack_size;
+			let pack_changed = row.pack_size !== row.original_pack_size;
 			let row_bg = '';
 			if (row.checked && pack_changed) row_bg = 'background:#fffff0;';
 			else if (row.checked) row_bg = 'background:#f0fff4;';
@@ -293,6 +386,10 @@ function show_dispatch_items_dialog(frm, customer, pending_items, pack_sizes, ba
 			html += '<td style="text-align:center;vertical-align:middle;padding:5px 3px;">'
 				+ '<input type="checkbox" class="row-check" data-idx="' + row.idx + '" '
 				+ (row.checked ? 'checked' : '') + ' style="width:15px;height:15px;cursor:pointer;">'
+				+ '</td>';
+
+			// Customer (empty for grouped display, shown in header)
+			html += '<td style="vertical-align:middle;padding:5px;font-size:11px;color:#718096;">'
 				+ '</td>';
 
 			// Deal
@@ -306,34 +403,30 @@ function show_dispatch_items_dialog(frm, customer, pending_items, pack_sizes, ba
 				+ (row.item_name || row.item) + '</td>';
 
 			// Pending KG
-			html += '<td class="remaining-cell" data-row-idx="' + row.idx + '" style="text-align:right;vertical-align:middle;padding:5px;font-weight:600;color:#805ad5;">'
+			html += '<td style="text-align:right;vertical-align:middle;padding:5px;font-weight:600;color:#805ad5;">'
 				+ row.pending_kg.toFixed(2) + '</td>';
 
-			// Pack Size (dropdown)
-			let pack_select = '<select class="pack-select" data-idx="' + row.idx + '" '
+			// Pack Size dropdown
+			let ps_html = '<select class="pack-select" data-idx="' + row.idx + '" '
 				+ 'style="padding:4px 5px;border:1px solid ' + (pack_changed ? '#d69e2e' : '#cbd5e0') + ';border-radius:4px;font-size:11.5px;min-width:90px;'
 				+ (pack_changed ? 'font-weight:600;background:#fffff0;' : '') + '">';
 			pack_sizes.forEach(function(ps) {
-				pack_select += '<option value="' + ps.pack_size + '"'
+				ps_html += '<option value="' + ps.pack_size + '"'
 					+ (row.pack_size === ps.pack_size ? ' selected' : '') + '>'
 					+ ps.pack_size + ' (' + ps.weight_kg + ' KG)</option>';
 			});
-			pack_select += '</select>';
-			html += '<td style="vertical-align:middle;padding:5px;">' + pack_select;
+			ps_html += '</select>';
+			html += '<td style="vertical-align:middle;padding:5px;">' + ps_html;
 			if (pack_changed) {
 				html += '<br><span style="font-size:9px;color:#a0aec0;">was: ' + row.original_pack_size + '</span>';
 			}
 			html += '</td>';
 
-			// Weight
-			html += '<td style="text-align:right;vertical-align:middle;padding:5px;color:#718096;font-size:11px;">'
-				+ row.pack_weight_kg + '</td>';
-
 			// Bag Cost
 			html += '<td style="text-align:right;vertical-align:middle;padding:5px;color:#718096;font-size:11px;">'
 				+ (flt(row.bag_cost) > 0 ? format_number(row.bag_cost) : '--') + '</td>';
 
-			// Deliver Qty (editable)
+			// Qty (editable)
 			html += '<td style="text-align:right;vertical-align:middle;padding:5px;">'
 				+ '<input type="number" class="deliver-input" data-idx="' + row.idx + '" '
 				+ 'value="' + (row.deliver_qty || '') + '" min="0" '
@@ -359,26 +452,30 @@ function show_dispatch_items_dialog(frm, customer, pending_items, pack_sizes, ba
 		html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:8px 0;">';
 		html += '<div class="dialog-footer-summary" style="display:flex;gap:20px;font-size:12.5px;color:#4a5568;">';
 		html += '<div>Selected: <strong>' + summary.selected + '</strong> of ' + rows.length + '</div>';
+		html += '<div>Customers: <strong>' + summary.customers + '</strong></div>';
 		html += '<div>Packs: <strong>' + summary.total_qty + '</strong></div>';
 		html += '<div>KG: <strong>' + summary.total_kg.toFixed(2) + '</strong></div>';
 		html += '<div>Amount: <strong>&#8377; ' + format_number(summary.total_amount) + '</strong></div>';
 		if (capacity) {
 			let remaining_cap = capacity - already_loaded - summary.total_kg;
 			let cap_color = remaining_cap < 0 ? '#e53e3e' : '#38a169';
-			html += '<div>Remaining Capacity: <strong style="color:' + cap_color + ';">' + remaining_cap.toFixed(0) + ' KG</strong></div>';
+			html += '<div>Remaining: <strong style="color:' + cap_color + ';">' + remaining_cap.toFixed(0) + ' KG</strong></div>';
 		}
 		html += '</div></div>';
 
 		wrapper.html(html);
-
-		// Bind events
 		bind_dispatch_events(wrapper, rows, pack_weight_map, bag_cost_map, pack_sizes, capacity, already_loaded, render_table);
 	}
 
 	render_table();
 	d.show();
-	d.$wrapper.find('.modal-dialog').css('max-width', '1100px');
+	d.$wrapper.find('.modal-dialog').css('max-width', '1150px');
 }
+
+
+// ============================================================
+// Dialog Event Handlers
+// ============================================================
 
 function bind_dispatch_events(wrapper, rows, pack_weight_map, bag_cost_map, pack_sizes, capacity, already_loaded, render_table) {
 	// Checkbox
@@ -405,20 +502,17 @@ function bind_dispatch_events(wrapper, rows, pack_weight_map, bag_cost_map, pack
 			row.pack_size = new_pack;
 			row.pack_weight_kg = pack_weight_map[new_pack] || 0;
 
-			// Recalculate rate and bag cost for new pack size
 			let bc = flt(bag_cost_map[row.item + ':' + new_pack]);
 			row.bag_cost = bc;
 			row.rate = (flt(row.price_per_kg) * flt(row.pack_weight_kg)) + bc;
 
-			// Auto-convert deliver_qty to match pending KG
 			row.deliver_qty = calc_vd_packs_remaining(row);
-
 			if (!row.checked) row.checked = true;
 			render_table();
 		}
 	});
 
-	// Deliver qty — real-time update with validation
+	// Deliver qty input
 	wrapper.find('.deliver-input').off('input').on('input', function() {
 		let idx = parseInt($(this).data('idx'));
 		let val = parseFloat($(this).val()) || 0;
@@ -426,7 +520,6 @@ function bind_dispatch_events(wrapper, rows, pack_weight_map, bag_cost_map, pack
 		if (!row) return;
 		if (val < 0) val = 0;
 
-		// Cap by available KG
 		let available_kg = flt(row.pending_kg);
 		let delivering_kg = val * flt(row.pack_weight_kg);
 
@@ -451,24 +544,94 @@ function bind_dispatch_events(wrapper, rows, pack_weight_map, bag_cost_map, pack
 		$amt.css({'font-weight': amount > 0 ? '600' : '', 'color': amount > 0 ? '' : '#718096'});
 
 		// Update footer
-		let summary = get_vd_dialog_summary(rows);
-		let footer_html = '<div>Selected: <strong>' + summary.selected + '</strong> of ' + rows.length + '</div>'
-			+ '<div>Packs: <strong>' + summary.total_qty + '</strong></div>'
-			+ '<div>KG: <strong>' + summary.total_kg.toFixed(2) + '</strong></div>'
-			+ '<div>Amount: <strong>&#8377; ' + format_number(summary.total_amount) + '</strong></div>';
-		if (capacity) {
-			let remaining_cap = capacity - already_loaded - summary.total_kg;
-			let cap_color = remaining_cap < 0 ? '#e53e3e' : '#38a169';
-			footer_html += '<div>Remaining Capacity: <strong style="color:' + cap_color + ';">' + remaining_cap.toFixed(0) + ' KG</strong></div>';
-		}
-		wrapper.find('.dialog-footer-summary').html(footer_html);
+		update_dialog_footer(wrapper, rows, capacity, already_loaded);
 	});
 
-	// Re-render on blur
 	wrapper.find('.deliver-input').off('change').on('change', function() {
 		render_table();
 	});
 }
+
+
+// ============================================================
+// Add Items to Vehicle (from dialog to child table)
+// ============================================================
+
+function add_items_to_vehicle(frm, rows, dialog) {
+	let items_to_add = [];
+	rows.forEach(function(row) {
+		if (!row.checked || !row.deliver_qty || row.deliver_qty <= 0) return;
+		items_to_add.push(row);
+	});
+
+	if (items_to_add.length === 0) {
+		frappe.msgprint(__('No items selected. Please check items and enter qty.'));
+		return;
+	}
+
+	// Add to load_items child table
+	items_to_add.forEach(function(row) {
+		let child = frm.add_child('load_items');
+		child.customer = row.customer;
+		child.customer_name = row.customer_name;
+		child.soda = row.deal_name;
+		child.deal_item = row.deal_item_name;
+		child.item = row.item;
+		child.pack_size = row.pack_size;
+		child.pack_weight_kg = row.pack_weight_kg;
+		child.qty = row.deliver_qty;
+		child.kg = flt(row.deliver_qty) * flt(row.pack_weight_kg);
+		child.price_per_kg = row.price_per_kg;
+		child.bag_cost = row.bag_cost;
+		child.rate = row.rate;
+		child.amount = flt(row.deliver_qty) * flt(row.rate);
+	});
+
+	frm.refresh_field('load_items');
+
+	// Auto-populate customer_payments for new customers
+	let existing_customers = new Set();
+	(frm.doc.customer_payments || []).forEach(function(row) {
+		existing_customers.add(row.customer);
+	});
+
+	let new_customers = new Set();
+	items_to_add.forEach(function(row) {
+		if (!existing_customers.has(row.customer)) {
+			new_customers.add(row.customer);
+		}
+	});
+
+	new_customers.forEach(function(cust) {
+		let cp = frm.add_child('customer_payments');
+		cp.customer = cust;
+		// customer_name will be fetched
+		let cust_item = items_to_add.find(function(r) { return r.customer === cust; });
+		if (cust_item) {
+			cp.customer_name = cust_item.customer_name;
+		}
+		cp.payment_mode = 'Cash';
+	});
+
+	frm.refresh_field('customer_payments');
+	frm.dirty();
+
+	// Recalculate totals
+	recalc_totals_from_items(frm);
+
+	dialog.hide();
+
+	let customer_count = new Set(items_to_add.map(function(r) { return r.customer; })).size;
+	frappe.show_alert({
+		message: __('{0} items added for {1} customer(s). Save to continue.', [items_to_add.length, customer_count]),
+		indicator: 'green'
+	}, 5);
+}
+
+
+// ============================================================
+// Helper functions
+// ============================================================
 
 function calc_vd_packs_remaining(row) {
 	if (flt(row.pack_weight_kg) <= 0) return 0;
@@ -478,10 +641,8 @@ function calc_vd_packs_remaining(row) {
 }
 
 function get_vd_dialog_summary(rows) {
-	let selected = 0;
-	let total_qty = 0;
-	let total_kg = 0;
-	let total_amount = 0;
+	let selected = 0, total_qty = 0, total_kg = 0, total_amount = 0;
+	let customers = new Set();
 
 	rows.forEach(function(row) {
 		if (row.checked && row.deliver_qty > 0) {
@@ -489,224 +650,36 @@ function get_vd_dialog_summary(rows) {
 			total_qty += flt(row.deliver_qty);
 			total_kg += flt(row.deliver_qty) * flt(row.pack_weight_kg);
 			total_amount += flt(row.deliver_qty) * flt(row.rate);
+			customers.add(row.customer);
 		}
 	});
 
 	return {
 		selected: selected,
+		customers: customers.size,
 		total_qty: total_qty,
 		total_kg: total_kg,
 		total_amount: total_amount
 	};
 }
 
-function add_items_to_vehicle(frm, customer, rows, dialog) {
-	let items_to_send = [];
-
-	rows.forEach(function(row) {
-		if (!row.checked || !row.deliver_qty || row.deliver_qty <= 0) return;
-
-		items_to_send.push({
-			soda: row.deal_name,
-			deal_item: row.deal_item_name,
-			item: row.item,
-			pack_size: row.pack_size,
-			pack_weight_kg: row.pack_weight_kg,
-			deliver_qty: row.deliver_qty,
-			bag_cost: row.bag_cost,
-			rate: row.rate
-		});
-	});
-
-	if (items_to_send.length === 0) {
-		frappe.msgprint(__('No items selected. Please check items and enter delivery qty.'));
-		return;
-	}
-
-	// Group items by Deal (soda) — one DD per Deal → one VDI row per Deal
-	let deal_groups = {};
-	items_to_send.forEach(function(item) {
-		let deal = item.soda || '_no_deal';
-		if (!deal_groups[deal]) deal_groups[deal] = [];
-		deal_groups[deal].push(item);
-	});
-
-	// Build pending entries — one per Deal
-	let pending = [];
-	try {
-		pending = JSON.parse(frm.doc._pending_auto_deliveries || '[]');
-	} catch(e) {
-		pending = [];
-	}
-	Object.keys(deal_groups).forEach(function(deal_key) {
-		pending.push({
-			customer: customer,
-			items: deal_groups[deal_key]
-		});
-	});
-	frm.doc._pending_auto_deliveries = JSON.stringify(pending);
-
-	// No placeholder rows — server creates VDI rows in before_save
-	dialog.hide();
-
-	let deal_count = Object.keys(deal_groups).length;
-	frappe.show_alert({
-		message: __('Creating {0} delivery record(s)...', [deal_count]),
-		indicator: 'blue'
-	}, 3);
-
-	frm.save().then(function() {
-		frappe.show_alert({
-			message: __('Deliveries created and added to vehicle.'),
-			indicator: 'green'
-		}, 5);
-		render_capacity_bar(frm);
-	});
-}
-
-
-// ============================================================
-// Link Existing Delivery (OLD flow — renamed)
-// ============================================================
-
-function link_existing_delivery_dialog(frm) {
-	frappe.call({
-		method: 'trustbit_mandi.trustbit_mandi.doctype.vehicle_dispatch.vehicle_dispatch.get_available_deliveries',
-		args: { exclude_dispatch: frm.doc.name },
-		freeze: true,
-		freeze_message: __('Loading deliveries...'),
-		callback: function(r) {
-			if (!r.message || r.message.length === 0) {
-				frappe.msgprint(__('No available deliveries found.'));
-				return;
-			}
-			show_existing_deliveries_dialog(frm, r.message);
-		}
-	});
-}
-
-function show_existing_deliveries_dialog(frm, deliveries) {
-	let capacity = flt(frm.doc.vehicle_capacity_kg);
-	let already_loaded = flt(frm.doc.total_loaded_kg);
-
-	// Build table HTML
-	let table_html = '<div style="max-height:400px;overflow-y:auto;">';
-	table_html += '<table class="table table-bordered table-sm" style="font-size:12px;">';
-	table_html += '<thead><tr style="background:#f5f5f5;">';
-	table_html += '<th style="width:30px;"><input type="checkbox" class="check-all"></th>';
-	table_html += '<th>Delivery</th><th>Customer</th><th>Date</th>';
-	table_html += '<th style="text-align:right;">Packs</th>';
-	table_html += '<th style="text-align:right;">DD Total KG</th>';
-	table_html += '<th style="text-align:right;">Remaining KG</th>';
-	table_html += '<th style="width:120px;">Load KG</th>';
-	table_html += '<th style="text-align:right;">Amount</th>';
-	table_html += '</tr></thead><tbody>';
-
-	deliveries.forEach(function(d, idx) {
-		let remaining = flt(d.remaining_kg);
-		table_html += '<tr>';
-		table_html += '<td><input type="checkbox" class="delivery-check" data-idx="' + idx + '"></td>';
-		table_html += '<td>' + d.name + '</td>';
-		table_html += '<td>' + (d.customer_name || d.customer) + '</td>';
-		table_html += '<td>' + d.delivery_date + '</td>';
-		table_html += '<td style="text-align:right;">' + flt(d.total_packs) + '</td>';
-		table_html += '<td style="text-align:right;">' + flt(d.total_kg).toFixed(2) + '</td>';
-		table_html += '<td style="text-align:right;color:#38a169;font-weight:bold;">' + remaining.toFixed(2) + '</td>';
-		table_html += '<td><input type="number" class="form-control input-sm load-kg-input" data-idx="' + idx + '" value="' + remaining.toFixed(2) + '" min="0" max="' + remaining.toFixed(2) + '" step="0.01" style="width:110px;text-align:right;"></td>';
-		table_html += '<td style="text-align:right;">' + format_currency(flt(d.total_amount)) + '</td>';
-		table_html += '</tr>';
-	});
-
-	table_html += '</tbody></table></div>';
-
-	// Footer with summary
-	let remaining_cap = capacity - already_loaded;
-	table_html += '<div class="delivery-footer" style="padding:8px;background:#f8f9fa;border-radius:4px;margin-top:8px;">';
-	table_html += '<span>Selected: <b class="selected-count">0</b></span>';
-	table_html += ' &nbsp;|&nbsp; Load KG: <b class="selected-kg">0</b>';
+function update_dialog_footer(wrapper, rows, capacity, already_loaded) {
+	let summary = get_vd_dialog_summary(rows);
+	let footer_html = '<div>Selected: <strong>' + summary.selected + '</strong> of ' + rows.length + '</div>'
+		+ '<div>Customers: <strong>' + summary.customers + '</strong></div>'
+		+ '<div>Packs: <strong>' + summary.total_qty + '</strong></div>'
+		+ '<div>KG: <strong>' + summary.total_kg.toFixed(2) + '</strong></div>'
+		+ '<div>Amount: <strong>&#8377; ' + format_number(summary.total_amount) + '</strong></div>';
 	if (capacity) {
-		table_html += ' &nbsp;|&nbsp; Remaining Capacity: <b class="remaining-cap">' + remaining_cap.toFixed(0) + '</b> KG';
+		let remaining_cap = capacity - already_loaded - summary.total_kg;
+		let cap_color = remaining_cap < 0 ? '#e53e3e' : '#38a169';
+		footer_html += '<div>Remaining: <strong style="color:' + cap_color + ';">' + remaining_cap.toFixed(0) + ' KG</strong></div>';
 	}
-	table_html += '</div>';
+	wrapper.find('.dialog-footer-summary').html(footer_html);
+}
 
-	let d = new frappe.ui.Dialog({
-		title: __('Link Existing Deliveries'),
-		size: 'extra-large',
-		fields: [
-			{fieldtype: 'HTML', fieldname: 'deliveries_html'}
-		],
-		primary_action_label: __('Add Selected'),
-		primary_action: function() {
-			let selected = [];
-			d.$wrapper.find('.delivery-check:checked').each(function() {
-				let idx = $(this).data('idx');
-				let load_kg = parseFloat(d.$wrapper.find('.load-kg-input[data-idx="' + idx + '"]').val()) || 0;
-				if (load_kg > 0) {
-					selected.push({
-						delivery: deliveries[idx],
-						load_kg: load_kg
-					});
-				}
-			});
-
-			if (selected.length === 0) {
-				frappe.msgprint(__('Please select at least one delivery.'));
-				return;
-			}
-
-			// Add to child table
-			selected.forEach(function(s) {
-				let del = s.delivery;
-				let row = frm.add_child('deliveries');
-				row.deal_delivery = del.name;
-				row.customer = del.customer;
-				row.customer_name = del.customer_name;
-				row.delivery_date = del.delivery_date;
-				row.total_packs = flt(del.total_packs);
-				row.total_kg = flt(del.total_kg);
-				row.total_amount = flt(del.total_amount);
-				row.loaded_kg = s.load_kg;
-				// loaded_amount calculated in before_save
-			});
-
-			frm.refresh_field('deliveries');
-			frm.dirty();
-			d.hide();
-		}
-	});
-
-	d.fields_dict.deliveries_html.$wrapper.html(table_html);
-
-	// Check-all handler
-	d.$wrapper.find('.check-all').on('change', function() {
-		let checked = $(this).prop('checked');
-		d.$wrapper.find('.delivery-check').prop('checked', checked).trigger('change');
-	});
-
-	// Update footer on checkbox change or load kg change
-	function update_footer() {
-		let total_kg = 0;
-		let count = 0;
-		d.$wrapper.find('.delivery-check:checked').each(function() {
-			let idx = $(this).data('idx');
-			let load_val = parseFloat(d.$wrapper.find('.load-kg-input[data-idx="' + idx + '"]').val()) || 0;
-			total_kg += load_val;
-			count++;
-		});
-		d.$wrapper.find('.selected-count').text(count);
-		d.$wrapper.find('.selected-kg').text(total_kg.toFixed(2));
-		if (capacity) {
-			let rem = remaining_cap - total_kg;
-			let $cap = d.$wrapper.find('.remaining-cap');
-			$cap.text(rem.toFixed(0));
-			$cap.css('color', rem < 0 ? '#e53e3e' : '#38a169');
-		}
-	}
-
-	d.$wrapper.on('change', '.delivery-check', update_footer);
-	d.$wrapper.on('input', '.load-kg-input', update_footer);
-
-	d.show();
+function format_number(num) {
+	return parseFloat(num || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
 
 function flt(val) {

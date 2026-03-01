@@ -1,146 +1,38 @@
 # Copyright (c) 2026, Trustbit Software and contributors
 # For license information, please see license.txt
 
-import json
-
 import frappe
 from frappe.model.document import Document
 from frappe.utils import flt
 
+from trustbit_mandi.trustbit_mandi.doctype.deal_delivery.deal_delivery import (
+	get_other_delivered_kg_for_item,
+)
+
 
 class VehicleDispatch(Document):
 	def before_save(self):
-		self.process_pending_auto_deliveries()
-		self.validate_deliveries()
+		self.calculate_item_kg()
 		self.calculate_totals()
-		self.calculate_payment_totals()
+		self.calculate_customer_payment_totals()
+		self.calculate_freight_totals()
 		self.validate_capacity()
 		self.set_status()
 
-	def process_pending_auto_deliveries(self):
-		"""Create Deal Deliveries from pending items stored by the Get Deliveries dialog.
-		This runs during save so DDs are only created when VD is actually saved."""
-		if not self._pending_auto_deliveries:
-			return
-
-		pending = json.loads(self._pending_auto_deliveries)
-		if not pending:
-			self._pending_auto_deliveries = None
-			return
-
-		# Remove placeholder VDI rows (those without deal_delivery)
-		self.deliveries = [row for row in self.deliveries if row.deal_delivery]
-
-		created_dd_names = []
-		for entry in pending:
-			customer = entry["customer"]
-			items_data = entry["items"]
-
-			if not items_data:
-				continue
-
-			dd = frappe.new_doc("Deal Delivery")
-			dd.customer = customer
-			dd.delivery_date = self.dispatch_date
-			dd.is_auto_created = 1
-			# vehicle_dispatch set in on_update (self.name not final for new docs)
-
-			for item in items_data:
-				dd.append("items", {
-					"soda": item.get("soda") or "",
-					"deal_item": item.get("deal_item") or "",
-					"item": item["item"],
-					"pack_size": item["pack_size"],
-					"pack_weight_kg": flt(item.get("pack_weight_kg")),
-					"deliver_qty": flt(item["deliver_qty"]),
-					"bag_cost": flt(item.get("bag_cost", 0)),
-					"rate": flt(item["rate"]),
-					"amount": flt(item["deliver_qty"]) * flt(item["rate"]),
-				})
-
-			dd.save(ignore_permissions=True)
-			dd.submit()
-
-			self.append("deliveries", {
-				"deal_delivery": dd.name,
-				"customer": dd.customer,
-				"customer_name": dd.customer_name,
-				"delivery_date": str(dd.delivery_date),
-				"total_packs": flt(dd.total_delivery_qty),
-				"total_kg": flt(dd.total_delivery_kg),
-				"total_amount": flt(dd.total_amount),
-				"loaded_kg": flt(dd.total_delivery_kg),
-			})
-
-			created_dd_names.append(dd.name)
-			frappe.msgprint(
-				"Delivery {0} created and submitted.".format(dd.name),
-				indicator="green", alert=True)
-
-		self._pending_auto_deliveries = None
-		# Store for on_update to set vehicle_dispatch back-reference
-		self._newly_created_dds = created_dd_names
-
-	def set_status(self):
-		if self.docstatus == 0:
-			self.status = "Loading"
-		elif self.docstatus == 1:
-			self.status = "Dispatched"
-		elif self.docstatus == 2:
-			self.status = "Cancelled"
-
-	def validate_deliveries(self):
-		seen = set()
-		for row in self.deliveries:
-			if not row.deal_delivery:
-				frappe.throw("Row {0}: Deal Delivery is required.".format(row.idx))
-
-			# No duplicates within same VD
-			if row.deal_delivery in seen:
-				frappe.throw("Row {0}: Deal Delivery {1} is added more than once.".format(
-					row.idx, row.deal_delivery))
-			seen.add(row.deal_delivery)
-
-			dd = frappe.get_doc("Deal Delivery", row.deal_delivery)
-			if dd.docstatus != 1:
-				frappe.throw("Row {0}: Deal Delivery {1} is not submitted.".format(
-					row.idx, row.deal_delivery))
-
-			dd_total_kg = flt(dd.total_delivery_kg)
-			loaded = flt(row.loaded_kg)
-
-			if loaded <= 0:
-				frappe.throw("Row {0}: Loaded KG must be greater than 0.".format(row.idx))
-
-			if loaded > dd_total_kg + 0.1:
-				frappe.throw("Row {0}: Loaded KG ({1}) exceeds Deal Delivery total ({2} KG).".format(
-					row.idx, loaded, dd_total_kg))
-
-			# Check total loaded across all other VDs
-			already_loaded = get_already_loaded_kg(row.deal_delivery, exclude=self.name)
-			if already_loaded + loaded > dd_total_kg + 0.1:
-				frappe.throw(
-					"Row {0}: Deal Delivery {1} has {2} KG total, "
-					"{3} KG already loaded in other dispatches. "
-					"Cannot load {4} KG more.".format(
-						row.idx, row.deal_delivery, dd_total_kg,
-						already_loaded, loaded))
-
-			# Calculate loaded_amount proportionally
-			if dd_total_kg > 0:
-				row.loaded_amount = flt(dd.total_amount) * (loaded / dd_total_kg)
-			else:
-				row.loaded_amount = 0
+	def calculate_item_kg(self):
+		for row in self.load_items:
+			row.kg = flt(row.qty) * flt(row.pack_weight_kg)
+			row.amount = flt(row.qty) * flt(row.rate)
 
 	def calculate_totals(self):
 		total_kg = 0
 		total_packs = 0
 		total_amount = 0
 		customers = set()
-		for row in self.deliveries:
-			total_kg += flt(row.loaded_kg)
-			total_packs += flt(row.total_packs)
-			total_amount += flt(row.loaded_amount)
+		for row in self.load_items:
+			total_kg += flt(row.kg)
+			total_packs += flt(row.qty)
+			total_amount += flt(row.amount)
 			if row.customer:
 				customers.add(row.customer)
 
@@ -154,7 +46,18 @@ class VehicleDispatch(Document):
 		else:
 			self.capacity_utilization = 0
 
-	def calculate_payment_totals(self):
+	def calculate_customer_payment_totals(self):
+		customer_amounts = {}
+		for row in self.load_items:
+			if row.customer:
+				customer_amounts.setdefault(row.customer, 0)
+				customer_amounts[row.customer] += flt(row.amount)
+
+		for row in self.customer_payments:
+			row.invoice_amount = flt(customer_amounts.get(row.customer, 0))
+			row.balance_amount = flt(row.invoice_amount) - flt(row.paying_amount)
+
+	def calculate_freight_totals(self):
 		total_paid = 0
 		for row in self.payments:
 			total_paid += flt(row.amount)
@@ -168,25 +71,316 @@ class VehicleDispatch(Document):
 					self.total_loaded_kg, self.vehicle_capacity_kg),
 				indicator='orange', alert=True)
 
-	def on_update(self):
-		"""Update vehicle_dispatch reference on newly auto-created DDs."""
-		for dd_name in getattr(self, "_newly_created_dds", []):
-			frappe.db.set_value(
-				"Deal Delivery", dd_name, "vehicle_dispatch",
-				self.name, update_modified=False)
-		self._newly_created_dds = []
+	def set_status(self):
+		if self.docstatus == 0:
+			self.status = "Loading"
+		elif self.docstatus == 1:
+			self.status = "Dispatched"
+		elif self.docstatus == 2:
+			self.status = "Cancelled"
 
 	def on_submit(self):
+		if not self.load_items:
+			frappe.throw("Cannot dispatch without any items loaded.")
+
+		# Count steps for progress bar
+		customer_deal_groups = self._group_items_by_customer_deal()
+		customers = list(set(row.customer for row in self.load_items if row.customer))
+		paying_customers = [row for row in self.customer_payments if flt(row.paying_amount) > 0]
+
+		total_steps = len(customer_deal_groups) + len(customers) + len(paying_customers)
+		if total_steps == 0:
+			total_steps = 1
+		step = 0
+
+		# Step 1: Create Deal Deliveries (grouped by customer + deal)
+		for key, items in customer_deal_groups.items():
+			customer, deal = key
+			customer_name = items[0].get("customer_name", "")
+			step += 1
+			frappe.publish_progress(
+				step * 100 / total_steps,
+				title="Dispatching Vehicle...",
+				description="Creating delivery for {0}...".format(customer_name or customer))
+
+			dd = self._create_deal_delivery(customer, deal, items)
+			# Set back-reference on load_item rows
+			for item in items:
+				frappe.db.set_value(
+					"Vehicle Dispatch Load Item", item["row_name"],
+					"deal_delivery", dd.name, update_modified=False)
+
+		# Step 2: Create Sales Invoices (per customer)
+		customer_si_map = {}
+		for customer in customers:
+			step += 1
+			customer_name = frappe.get_cached_value("Customer", customer, "customer_name") or customer
+			frappe.publish_progress(
+				step * 100 / total_steps,
+				title="Dispatching Vehicle...",
+				description="Creating invoice for {0}...".format(customer_name))
+
+			si = self._create_sales_invoice(customer)
+			customer_si_map[customer] = si.name
+
+		# Set SI reference on customer_payments
+		for row in self.customer_payments:
+			if row.customer in customer_si_map:
+				frappe.db.set_value(
+					"Vehicle Dispatch Customer Payment", row.name,
+					"sales_invoice", customer_si_map[row.customer], update_modified=False)
+
+		# Step 3: Create Payment Entries (per customer, if paying_amount > 0)
+		for row in paying_customers:
+			step += 1
+			customer_name = row.customer_name or row.customer
+			frappe.publish_progress(
+				step * 100 / total_steps,
+				title="Dispatching Vehicle...",
+				description="Recording payment for {0}...".format(customer_name))
+
+			si_name = customer_si_map.get(row.customer)
+			if si_name:
+				pe = self._create_payment_entry(row, si_name)
+				if pe:
+					frappe.db.set_value(
+						"Vehicle Dispatch Customer Payment", row.name,
+						"payment_entry", pe.name, update_modified=False)
+
+		frappe.publish_progress(100, title="Vehicle Dispatched!",
+			description="All documents created successfully.")
 		self.db_set("status", "Dispatched")
 
 	def on_cancel(self):
-		self.db_set("status", "Cancelled")
-		self.cancel_auto_created_deliveries()
+		total_steps = 3
+		step = 0
 
-	def cancel_auto_created_deliveries(self):
-		"""Cancel Deal Deliveries that were auto-created by this Vehicle Dispatch."""
-		# Find via vehicle_dispatch field
-		auto_dds = set(frappe.get_all(
+		# Step 1: Cancel Payment Entries
+		step += 1
+		frappe.publish_progress(
+			step * 100 / total_steps,
+			title="Cancelling Dispatch...",
+			description="Cancelling payment entries...")
+		self._cancel_payment_entries()
+
+		# Step 2: Cancel Sales Invoices
+		step += 1
+		frappe.publish_progress(
+			step * 100 / total_steps,
+			title="Cancelling Dispatch...",
+			description="Cancelling sales invoices...")
+		self._cancel_sales_invoices()
+
+		# Step 3: Cancel Deal Deliveries (DD on_cancel handles MSE + Deal rollback)
+		step += 1
+		frappe.publish_progress(
+			step * 100 / total_steps,
+			title="Cancelling Dispatch...",
+			description="Cancelling deliveries and restoring stock...")
+		self._cancel_deal_deliveries()
+
+		frappe.publish_progress(100, title="Dispatch Cancelled",
+			description="All documents cancelled.")
+		self.db_set("status", "Cancelled")
+
+	# ── Helper: Group items ──
+
+	def _group_items_by_customer_deal(self):
+		groups = {}
+		for row in self.load_items:
+			if not row.soda:
+				continue
+			key = (row.customer, row.soda)
+			if key not in groups:
+				groups[key] = []
+			groups[key].append({
+				"row_name": row.name,
+				"customer_name": row.customer_name,
+				"soda": row.soda,
+				"deal_item": row.deal_item,
+				"item": row.item,
+				"pack_size": row.pack_size,
+				"pack_weight_kg": flt(row.pack_weight_kg),
+				"qty": flt(row.qty),
+				"bag_cost": flt(row.bag_cost),
+				"rate": flt(row.rate),
+				"amount": flt(row.amount),
+				"price_per_kg": flt(row.price_per_kg),
+			})
+		return groups
+
+	# ── Helper: Create Deal Delivery ──
+
+	def _create_deal_delivery(self, customer, deal, items):
+		dd = frappe.new_doc("Deal Delivery")
+		dd.customer = customer
+		dd.delivery_date = self.dispatch_date
+		dd.is_auto_created = 1
+		dd.vehicle_dispatch = self.name
+
+		for item in items:
+			dd.append("items", {
+				"soda": item["soda"],
+				"deal_item": item.get("deal_item") or "",
+				"item": item["item"],
+				"pack_size": item["pack_size"],
+				"pack_weight_kg": flt(item["pack_weight_kg"]),
+				"deliver_qty": flt(item["qty"]),
+				"bag_cost": flt(item.get("bag_cost", 0)),
+				"rate": flt(item["rate"]),
+				"amount": flt(item["qty"]) * flt(item["rate"]),
+			})
+
+		dd.save(ignore_permissions=True)
+		dd.submit()
+		return dd
+
+	# ── Helper: Create Sales Invoice ──
+
+	def _create_sales_invoice(self, customer):
+		customer_items = [row for row in self.load_items if row.customer == customer]
+		if not customer_items:
+			frappe.throw("No items found for customer {0}".format(customer))
+
+		company = "Trustbit Mandi"
+
+		si = frappe.new_doc("Sales Invoice")
+		si.customer = customer
+		si.posting_date = self.dispatch_date
+		si.due_date = self.dispatch_date
+		si.company = company
+		si.update_stock = 0
+		si.set_posting_time = 1
+
+		income_account = frappe.get_cached_value("Company", company, "default_income_account")
+		cost_center = frappe.get_cached_value("Company", company, "cost_center")
+
+		for row in customer_items:
+			qty_kg = flt(row.qty) * flt(row.pack_weight_kg)
+			amount = flt(row.amount)
+			rate_per_kg = amount / qty_kg if qty_kg else 0
+
+			si_item = {
+				"item_code": row.item,
+				"qty": flt(qty_kg, 3),
+				"uom": "Kg",
+				"rate": flt(rate_per_kg, 4),
+				"amount": amount,
+				"description": "{0} - {1} x {2} packs".format(
+					row.item, row.pack_size, int(row.qty)),
+			}
+			if income_account:
+				si_item["income_account"] = income_account
+			if cost_center:
+				si_item["cost_center"] = cost_center
+
+			si.append("items", si_item)
+
+		si.insert(ignore_permissions=True)
+		si.submit()
+
+		frappe.msgprint(
+			"Sales Invoice {0} created for {1}.".format(
+				'<a href="/app/sales-invoice/{0}">{0}</a>'.format(si.name),
+				customer),
+			indicator="green", alert=True)
+		return si
+
+	# ── Helper: Create Payment Entry ──
+
+	def _create_payment_entry(self, payment_row, si_name):
+		try:
+			from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
+
+			pe = get_payment_entry("Sales Invoice", si_name)
+			pe.paid_amount = flt(payment_row.paying_amount)
+			pe.received_amount = flt(payment_row.paying_amount)
+			pe.mode_of_payment = payment_row.payment_mode or "Cash"
+			pe.reference_no = payment_row.reference or self.name
+			pe.reference_date = self.dispatch_date
+
+			if pe.references:
+				pe.references[0].allocated_amount = flt(payment_row.paying_amount)
+
+			pe.insert(ignore_permissions=True)
+			pe.submit()
+
+			frappe.msgprint(
+				"Payment Entry {0} created for {1}.".format(
+					'<a href="/app/payment-entry/{0}">{0}</a>'.format(pe.name),
+					payment_row.customer_name or payment_row.customer),
+				indicator="green", alert=True)
+			return pe
+		except Exception as e:
+			frappe.log_error(
+				title="Payment Entry creation failed for {0}".format(payment_row.customer),
+				message=str(e))
+			frappe.msgprint(
+				"Warning: Could not create Payment Entry for {0}. Error: {1}".format(
+					payment_row.customer_name or payment_row.customer, str(e)),
+				indicator="orange", alert=True)
+			return None
+
+	# ── Cancel helpers ──
+
+	def _cancel_payment_entries(self):
+		for row in self.customer_payments:
+			pe_name = frappe.db.get_value(
+				"Vehicle Dispatch Customer Payment",
+				row.name, "payment_entry")
+			if pe_name:
+				try:
+					pe = frappe.get_doc("Payment Entry", pe_name)
+					if pe.docstatus == 1:
+						pe.cancel()
+						frappe.msgprint(
+							"Payment Entry {0} cancelled.".format(pe_name),
+							indicator="orange", alert=True)
+				except Exception as e:
+					frappe.log_error(
+						title="Failed to cancel PE {0}".format(pe_name),
+						message=str(e))
+					frappe.msgprint(
+						"Warning: Could not cancel Payment Entry {0}. Error: {1}".format(
+							pe_name, str(e)),
+						indicator="red", alert=True)
+
+	def _cancel_sales_invoices(self):
+		si_names = set()
+		for row in self.customer_payments:
+			si_name = frappe.db.get_value(
+				"Vehicle Dispatch Customer Payment",
+				row.name, "sales_invoice")
+			if si_name:
+				si_names.add(si_name)
+
+		for si_name in si_names:
+			try:
+				si = frappe.get_doc("Sales Invoice", si_name)
+				if si.docstatus == 1:
+					si.cancel()
+					frappe.msgprint(
+						"Sales Invoice {0} cancelled.".format(si_name),
+						indicator="orange", alert=True)
+			except Exception as e:
+				frappe.log_error(
+					title="Failed to cancel SI {0}".format(si_name),
+					message=str(e))
+				frappe.msgprint(
+					"Warning: Could not cancel Sales Invoice {0}. Error: {1}".format(
+						si_name, str(e)),
+					indicator="red", alert=True)
+
+	def _cancel_deal_deliveries(self):
+		dd_names = set()
+		for row in self.load_items:
+			dd_name = frappe.db.get_value(
+				"Vehicle Dispatch Load Item",
+				row.name, "deal_delivery")
+			if dd_name:
+				dd_names.add(dd_name)
+
+		auto_dds = frappe.get_all(
 			"Deal Delivery",
 			filters={
 				"vehicle_dispatch": self.name,
@@ -194,28 +388,20 @@ class VehicleDispatch(Document):
 				"docstatus": 1
 			},
 			pluck="name"
-		))
+		)
+		dd_names.update(auto_dds)
 
-		# Also find via VDI rows (fallback for DDs created before back-reference was set)
-		for row in self.deliveries:
-			if row.deal_delivery:
-				is_auto = frappe.db.get_value(
-					"Deal Delivery", row.deal_delivery, "is_auto_created")
-				docstatus = frappe.db.get_value(
-					"Deal Delivery", row.deal_delivery, "docstatus")
-				if is_auto and docstatus == 1:
-					auto_dds.add(row.deal_delivery)
-
-		for dd_name in auto_dds:
+		for dd_name in dd_names:
 			try:
 				dd = frappe.get_doc("Deal Delivery", dd_name)
-				dd.cancel()
-				frappe.msgprint(
-					"Auto-created Delivery {0} cancelled.".format(dd_name),
-					indicator="orange", alert=True)
+				if dd.docstatus == 1:
+					dd.cancel()
+					frappe.msgprint(
+						"Delivery {0} cancelled.".format(dd_name),
+						indicator="orange", alert=True)
 			except Exception as e:
 				frappe.log_error(
-					title="Failed to cancel auto-created DD {0}".format(dd_name),
+					title="Failed to cancel DD {0}".format(dd_name),
 					message=str(e))
 				frappe.msgprint(
 					"Warning: Could not cancel Delivery {0}. Error: {1}".format(
@@ -223,92 +409,66 @@ class VehicleDispatch(Document):
 					indicator="red", alert=True)
 
 
-def get_already_loaded_kg(deal_delivery, exclude=None):
-	"""Get total loaded_kg for a Deal Delivery across all active Vehicle Dispatches."""
-	conditions = ["vdi.deal_delivery = %s", "vd.docstatus IN (0, 1)"]
-	values = [deal_delivery]
+# ── Whitelisted APIs ──
 
-	if exclude:
-		conditions.append("vd.name != %s")
-		values.append(exclude)
+@frappe.whitelist()
+def get_pending_items_for_dispatch(price_list_area=None, customer=None):
+	"""Get pending Deal Items for VD dialog, filterable by area and/or customer."""
+	if not price_list_area and not customer:
+		frappe.throw("Please select an Area or Customer.")
 
-	result = frappe.db.sql("""
-		SELECT COALESCE(SUM(vdi.loaded_kg), 0) as total_loaded
-		FROM `tabVehicle Dispatch Item` vdi
-		INNER JOIN `tabVehicle Dispatch` vd ON vd.name = vdi.parent
+	conditions = [
+		"d.status IN ('Open', 'Confirmed', 'Partially Delivered')",
+		"di.item_status IN ('Open', 'Partially Delivered')"
+	]
+	values = []
+
+	if customer:
+		conditions.append("d.customer = %s")
+		values.append(customer)
+
+	if price_list_area:
+		conditions.append("d.price_list_area = %s")
+		values.append(price_list_area)
+
+	rows = frappe.db.sql("""
+		SELECT
+			d.name as deal_name,
+			d.soda_date,
+			d.customer,
+			d.customer_name,
+			d.price_list_area,
+			di.name as deal_item_name,
+			di.item,
+			di.item_name,
+			di.pack_size,
+			di.pack_weight_kg,
+			di.qty,
+			di.rate,
+			di.price_per_kg,
+			di.base_price_50kg,
+			di.bag_cost
+		FROM `tabDeal Item` di
+		INNER JOIN `tabDeal` d ON d.name = di.parent
 		WHERE {conditions}
-	""".format(conditions=" AND ".join(conditions)), values)
+		ORDER BY d.customer ASC, d.soda_date ASC, d.creation ASC, di.idx ASC
+	""".format(conditions=" AND ".join(conditions)), values, as_dict=True)
 
-	return flt(result[0][0]) if result else 0
+	result = []
+	for row in rows:
+		booked_kg = flt(row.qty) * flt(row.pack_weight_kg)
+		other_delivered_kg = get_other_delivered_kg_for_item(
+			row.deal_name, row.deal_item_name)
+		pending_kg = booked_kg - flt(other_delivered_kg)
 
+		if pending_kg > 0.1:
+			row['booked_kg'] = booked_kg
+			row['delivered_kg'] = flt(other_delivered_kg)
+			row['pending_kg'] = pending_kg
+			if flt(row.pack_weight_kg) > 0:
+				row['pending_packs'] = pending_kg / flt(row.pack_weight_kg)
+			else:
+				row['pending_packs'] = 0
+			result.append(row)
 
-@frappe.whitelist()
-def get_available_deliveries(exclude_dispatch=None):
-	"""Get submitted Deal Deliveries that have remaining KG available for loading."""
-	result = frappe.db.sql("""
-		SELECT dd.name, dd.customer, dd.customer_name, dd.delivery_date,
-			dd.total_delivery_qty as total_packs, dd.total_delivery_kg as total_kg,
-			dd.total_amount,
-			dd.total_delivery_kg - COALESCE(
-				(SELECT SUM(vdi.loaded_kg)
-				 FROM `tabVehicle Dispatch Item` vdi
-				 INNER JOIN `tabVehicle Dispatch` vd ON vd.name = vdi.parent
-				 WHERE vdi.deal_delivery = dd.name
-				   AND vd.docstatus IN (0, 1)
-				   {exclude_condition}
-				), 0
-			) as remaining_kg
-		FROM `tabDeal Delivery` dd
-		WHERE dd.docstatus = 1
-		HAVING remaining_kg > 0.1
-		ORDER BY dd.delivery_date ASC, dd.creation ASC
-	""".format(
-		exclude_condition="AND vd.name != %s" if exclude_dispatch else ""
-	), [exclude_dispatch] if exclude_dispatch else [], as_dict=True)
 	return result
-
-
-@frappe.whitelist()
-def create_delivery_for_dispatch(customer, dispatch_name, dispatch_date, items_data):
-	"""Auto-create a Deal Delivery from Vehicle Dispatch dialog.
-	Creates DD, submits it, returns DD details for VDI row insertion."""
-	if isinstance(items_data, str):
-		items_data = json.loads(items_data)
-
-	if not items_data:
-		frappe.throw("No items provided for delivery.")
-
-	dd = frappe.new_doc("Deal Delivery")
-	dd.customer = customer
-	dd.delivery_date = dispatch_date
-	dd.is_auto_created = 1
-	dd.vehicle_dispatch = dispatch_name
-
-	for item in items_data:
-		dd.append("items", {
-			"soda": item.get("soda") or "",
-			"deal_item": item.get("deal_item") or "",
-			"item": item["item"],
-			"pack_size": item["pack_size"],
-			"pack_weight_kg": flt(item.get("pack_weight_kg")),
-			"deliver_qty": flt(item["deliver_qty"]),
-			"bag_cost": flt(item.get("bag_cost", 0)),
-			"rate": flt(item["rate"]),
-			"amount": flt(item["deliver_qty"]) * flt(item["rate"]),
-		})
-
-	# Save triggers: set_extra_flag, validate_items (KG check), calculate_totals
-	dd.save(ignore_permissions=True)
-
-	# Submit triggers: update_deal_statuses, create_stock_entry
-	dd.submit()
-
-	return {
-		"name": dd.name,
-		"customer": dd.customer,
-		"customer_name": dd.customer_name,
-		"delivery_date": str(dd.delivery_date),
-		"total_packs": flt(dd.total_delivery_qty),
-		"total_kg": flt(dd.total_delivery_kg),
-		"total_amount": flt(dd.total_amount)
-	}

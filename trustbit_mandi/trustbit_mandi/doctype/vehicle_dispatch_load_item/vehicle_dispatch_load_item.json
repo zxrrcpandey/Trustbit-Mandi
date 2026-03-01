@@ -1,0 +1,151 @@
+{
+ "actions": [],
+ "creation": "2026-03-02 16:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "customer",
+  "customer_name",
+  "soda",
+  "deal_item",
+  "item",
+  "column_break_details",
+  "pack_size",
+  "pack_weight_kg",
+  "qty",
+  "kg",
+  "column_break_pricing",
+  "price_per_kg",
+  "bag_cost",
+  "rate",
+  "amount",
+  "deal_delivery"
+ ],
+ "fields": [
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "soda",
+   "fieldtype": "Link",
+   "label": "Deal",
+   "options": "Deal"
+  },
+  {
+   "fieldname": "deal_item",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Deal Item Ref",
+   "read_only": 1
+  },
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_details",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "pack_size",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Pack Size",
+   "options": "Deal Pack Size",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "pack_size.weight_kg",
+   "fieldname": "pack_weight_kg",
+   "fieldtype": "Float",
+   "label": "Weight (KG)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Qty (Packs)",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "kg",
+   "fieldtype": "Float",
+   "label": "KG",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_pricing",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "price_per_kg",
+   "fieldtype": "Currency",
+   "hidden": 1,
+   "label": "Price/KG",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "bag_cost",
+   "fieldtype": "Currency",
+   "label": "Bag Cost",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Rate",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "deal_delivery",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Deal Delivery",
+   "options": "Deal Delivery",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-03-02 16:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Trustbit Mandi",
+ "name": "Vehicle Dispatch Load Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
