@@ -523,48 +523,61 @@ function add_items_to_vehicle(frm, customer, rows, dialog) {
 		return;
 	}
 
-	// Auto-create Deal Delivery and add to VD
-	frappe.call({
-		method: 'trustbit_mandi.trustbit_mandi.doctype.vehicle_dispatch.vehicle_dispatch.create_delivery_for_dispatch',
-		args: {
-			customer: customer,
-			dispatch_name: frm.doc.name,
-			dispatch_date: frm.doc.dispatch_date,
-			items_data: JSON.stringify(items_to_send)
-		},
-		freeze: true,
-		freeze_message: __('Creating delivery and adding to vehicle...'),
-		callback: function(r) {
-			if (r.message) {
-				let dd = r.message;
+	// Store pending items for server-side DD creation on save
+	let pending = [];
+	try {
+		pending = JSON.parse(frm.doc._pending_auto_deliveries || '[]');
+	} catch(e) {
+		pending = [];
+	}
+	pending.push({
+		customer: customer,
+		items: items_to_send
+	});
+	frm.doc._pending_auto_deliveries = JSON.stringify(pending);
 
-				// Add VDI row
-				let row = frm.add_child('deliveries');
-				row.deal_delivery = dd.name;
-				row.customer = dd.customer;
-				row.customer_name = dd.customer_name;
-				row.delivery_date = dd.delivery_date;
-				row.total_packs = flt(dd.total_packs);
-				row.total_kg = flt(dd.total_kg);
-				row.total_amount = flt(dd.total_amount);
-				row.loaded_kg = flt(dd.total_kg);
-				// loaded_amount calculated in before_save
+	// Get customer_name from first pending item
+	let customer_name = '';
+	if (rows.length > 0) {
+		customer_name = rows[0].item_name ? customer : customer;
+	}
+	// Fetch customer_name
+	frappe.db.get_value('Customer', customer, 'customer_name', function(r) {
+		let cname = (r && r.customer_name) || customer;
 
-				frm.refresh_field('deliveries');
-				frm.dirty();
-				dialog.hide();
+		// Calculate totals for placeholder row
+		let total_kg = 0;
+		let total_packs = 0;
+		let total_amount = 0;
+		items_to_send.forEach(function(item) {
+			let qty = flt(item.deliver_qty);
+			let wt = flt(item.pack_weight_kg);
+			total_packs += qty;
+			total_kg += qty * wt;
+			total_amount += qty * flt(item.rate);
+		});
 
-				frappe.show_alert({
-					message: __('Delivery {0} created and added to vehicle.', [dd.name]),
-					indicator: 'green'
-				}, 5);
+		// Add placeholder VDI row (deal_delivery empty — filled on save)
+		let row = frm.add_child('deliveries');
+		row.customer = customer;
+		row.customer_name = cname;
+		row.delivery_date = frm.doc.dispatch_date;
+		row.total_packs = total_packs;
+		row.total_kg = total_kg;
+		row.total_amount = total_amount;
+		row.loaded_kg = total_kg;
+		// deal_delivery will be set by server in before_save
 
-				render_capacity_bar(frm);
-			}
-		},
-		error: function() {
-			frappe.msgprint(__('Failed to create delivery. Please check error logs.'));
-		}
+		frm.refresh_field('deliveries');
+		frm.dirty();
+		dialog.hide();
+
+		frappe.show_alert({
+			message: __('Items added. Save the Vehicle Dispatch to create the delivery record.'),
+			indicator: 'blue'
+		}, 5);
+
+		render_capacity_bar(frm);
 	});
 }
 

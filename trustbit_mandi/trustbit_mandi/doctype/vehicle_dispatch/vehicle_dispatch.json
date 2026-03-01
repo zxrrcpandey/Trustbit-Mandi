@@ -37,7 +37,8 @@
   "section_payments_table",
   "payments",
   "section_remarks",
-  "remarks"
+  "remarks",
+  "_pending_auto_deliveries"
  ],
  "fields": [
   {
@@ -238,12 +239,20 @@
    "fieldname": "remarks",
    "fieldtype": "Small Text",
    "label": "Remarks"
+  },
+  {
+   "fieldname": "_pending_auto_deliveries",
+   "fieldtype": "Long Text",
+   "hidden": 1,
+   "label": "Pending Auto Deliveries",
+   "no_copy": 1,
+   "print_hide": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-03-02 10:00:00.000000",
+ "modified": "2026-03-02 14:00:00.000000",
  "modified_by": "Administrator",
  "module": "Trustbit Mandi",
  "name": "Vehicle Dispatch",

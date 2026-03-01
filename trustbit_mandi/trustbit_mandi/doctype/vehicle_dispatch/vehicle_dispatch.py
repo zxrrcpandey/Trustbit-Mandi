@@ -10,11 +10,76 @@ from frappe.utils import flt
 
 class VehicleDispatch(Document):
 	def before_save(self):
+		self.process_pending_auto_deliveries()
 		self.validate_deliveries()
 		self.calculate_totals()
 		self.calculate_payment_totals()
 		self.validate_capacity()
 		self.set_status()
+
+	def process_pending_auto_deliveries(self):
+		"""Create Deal Deliveries from pending items stored by the Get Deliveries dialog.
+		This runs during save so DDs are only created when VD is actually saved."""
+		if not self._pending_auto_deliveries:
+			return
+
+		pending = json.loads(self._pending_auto_deliveries)
+		if not pending:
+			self._pending_auto_deliveries = None
+			return
+
+		# Remove placeholder VDI rows (those without deal_delivery)
+		self.deliveries = [row for row in self.deliveries if row.deal_delivery]
+
+		created_dd_names = []
+		for entry in pending:
+			customer = entry["customer"]
+			items_data = entry["items"]
+
+			if not items_data:
+				continue
+
+			dd = frappe.new_doc("Deal Delivery")
+			dd.customer = customer
+			dd.delivery_date = self.dispatch_date
+			dd.is_auto_created = 1
+			# vehicle_dispatch set in on_update (self.name not final for new docs)
+
+			for item in items_data:
+				dd.append("items", {
+					"soda": item.get("soda") or "",
+					"deal_item": item.get("deal_item") or "",
+					"item": item["item"],
+					"pack_size": item["pack_size"],
+					"pack_weight_kg": flt(item.get("pack_weight_kg")),
+					"deliver_qty": flt(item["deliver_qty"]),
+					"bag_cost": flt(item.get("bag_cost", 0)),
+					"rate": flt(item["rate"]),
+					"amount": flt(item["deliver_qty"]) * flt(item["rate"]),
+				})
+
+			dd.save(ignore_permissions=True)
+			dd.submit()
+
+			self.append("deliveries", {
+				"deal_delivery": dd.name,
+				"customer": dd.customer,
+				"customer_name": dd.customer_name,
+				"delivery_date": str(dd.delivery_date),
+				"total_packs": flt(dd.total_delivery_qty),
+				"total_kg": flt(dd.total_delivery_kg),
+				"total_amount": flt(dd.total_amount),
+				"loaded_kg": flt(dd.total_delivery_kg),
+			})
+
+			created_dd_names.append(dd.name)
+			frappe.msgprint(
+				"Delivery {0} created and submitted.".format(dd.name),
+				indicator="green", alert=True)
+
+		self._pending_auto_deliveries = None
+		# Store for on_update to set vehicle_dispatch back-reference
+		self._newly_created_dds = created_dd_names
 
 	def set_status(self):
 		if self.docstatus == 0:
@@ -103,6 +168,14 @@ class VehicleDispatch(Document):
 					self.total_loaded_kg, self.vehicle_capacity_kg),
 				indicator='orange', alert=True)
 
+	def on_update(self):
+		"""Update vehicle_dispatch reference on newly auto-created DDs."""
+		for dd_name in getattr(self, "_newly_created_dds", []):
+			frappe.db.set_value(
+				"Deal Delivery", dd_name, "vehicle_dispatch",
+				self.name, update_modified=False)
+		self._newly_created_dds = []
+
 	def on_submit(self):
 		self.db_set("status", "Dispatched")
 
@@ -112,7 +185,8 @@ class VehicleDispatch(Document):
 
 	def cancel_auto_created_deliveries(self):
 		"""Cancel Deal Deliveries that were auto-created by this Vehicle Dispatch."""
-		auto_dds = frappe.get_all(
+		# Find via vehicle_dispatch field
+		auto_dds = set(frappe.get_all(
 			"Deal Delivery",
 			filters={
 				"vehicle_dispatch": self.name,
@@ -120,7 +194,17 @@ class VehicleDispatch(Document):
 				"docstatus": 1
 			},
 			pluck="name"
-		)
+		))
+
+		# Also find via VDI rows (fallback for DDs created before back-reference was set)
+		for row in self.deliveries:
+			if row.deal_delivery:
+				is_auto = frappe.db.get_value(
+					"Deal Delivery", row.deal_delivery, "is_auto_created")
+				docstatus = frappe.db.get_value(
+					"Deal Delivery", row.deal_delivery, "docstatus")
+				if is_auto and docstatus == 1:
+					auto_dds.add(row.deal_delivery)
 
 		for dd_name in auto_dds:
 			try:
