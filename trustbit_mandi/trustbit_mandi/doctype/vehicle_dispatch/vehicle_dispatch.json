@@ -13,7 +13,6 @@
   "status",
   "driver_name",
   "driver_mobile",
-  "petrol_amount",
   "amended_from",
   "section_capacity",
   "vehicle_capacity_kg",
@@ -96,12 +95,6 @@
    "fieldtype": "Data",
    "label": "Driver Mobile",
    "options": "Phone"
-  },
-  {
-   "default": "0",
-   "fieldname": "petrol_amount",
-   "fieldtype": "Currency",
-   "label": "Petrol Amount"
   },
   {
    "fieldname": "amended_from",
