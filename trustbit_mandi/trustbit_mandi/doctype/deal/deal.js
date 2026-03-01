@@ -32,17 +32,15 @@ frappe.ui.form.on('Deal', {
 			}).addClass('btn-primary');
 		}
 
-		// Create Delivery button
+		// Create Vehicle Dispatch button
 		if (!frm.is_new() && frm.doc.status !== 'Cancelled'
 			&& frm.doc.status !== 'Delivered') {
 			let has_pending = (frm.doc.items || []).some(function(row) {
 				return flt(row.pending_qty) > 0;
 			});
 			if (has_pending) {
-				frm.add_custom_button(__('Create Delivery'), function() {
-					frappe.new_doc('Deal Delivery', {
-						customer: frm.doc.customer
-					});
+				frm.add_custom_button(__('Create Vehicle Dispatch'), function() {
+					frappe.new_doc('Vehicle Dispatch');
 				});
 			}
 		}
