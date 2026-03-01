@@ -125,7 +125,11 @@
 
 	<div class="amount-box">
 		<div class="label">PETROL AMOUNT</div>
-		<div class="value">{{ frappe.utils.fmt_money(doc.freight_amount, currency='INR') }}</div>
+		{% set petrol_total = [] %}
+		{% for row in doc.payments if row.payment_mode == "Petrol" %}
+			{% if petrol_total.append(row.amount) %}{% endif %}
+		{% endfor %}
+		<div class="value">{{ frappe.utils.fmt_money(petrol_total | sum, currency='INR') }}</div>
 	</div>
 
 	<div class="signature-section">
