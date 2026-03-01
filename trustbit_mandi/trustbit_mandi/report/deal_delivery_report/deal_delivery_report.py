@@ -73,7 +73,7 @@ def get_data(filters):
 			dd.status,
 			dd.docstatus,
 			ddi.item,
-			ddi.item_name,
+			i.item_name,
 			ddi.pack_size,
 			ddi.pack_weight_kg,
 			ddi.deliver_qty,
@@ -83,6 +83,7 @@ def get_data(filters):
 			ddi.is_extra
 		FROM `tabDeal Delivery Item` ddi
 		INNER JOIN `tabDeal Delivery` dd ON dd.name = ddi.parent
+		LEFT JOIN `tabItem` i ON i.name = ddi.item
 		WHERE {conditions}
 		ORDER BY dd.delivery_date ASC, dd.creation ASC, ddi.idx ASC
 	""".format(conditions=" AND ".join(conditions))
