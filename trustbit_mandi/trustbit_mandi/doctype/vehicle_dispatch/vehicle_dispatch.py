@@ -1,6 +1,8 @@
 # Copyright (c) 2026, Trustbit Software and contributors
 # For license information, please see license.txt
 
+import json
+
 import frappe
 from frappe.model.document import Document
 from frappe.utils import flt
@@ -106,6 +108,35 @@ class VehicleDispatch(Document):
 
 	def on_cancel(self):
 		self.db_set("status", "Cancelled")
+		self.cancel_auto_created_deliveries()
+
+	def cancel_auto_created_deliveries(self):
+		"""Cancel Deal Deliveries that were auto-created by this Vehicle Dispatch."""
+		auto_dds = frappe.get_all(
+			"Deal Delivery",
+			filters={
+				"vehicle_dispatch": self.name,
+				"is_auto_created": 1,
+				"docstatus": 1
+			},
+			pluck="name"
+		)
+
+		for dd_name in auto_dds:
+			try:
+				dd = frappe.get_doc("Deal Delivery", dd_name)
+				dd.cancel()
+				frappe.msgprint(
+					"Auto-created Delivery {0} cancelled.".format(dd_name),
+					indicator="orange", alert=True)
+			except Exception as e:
+				frappe.log_error(
+					title="Failed to cancel auto-created DD {0}".format(dd_name),
+					message=str(e))
+				frappe.msgprint(
+					"Warning: Could not cancel Delivery {0}. Error: {1}".format(
+						dd_name, str(e)),
+					indicator="red", alert=True)
 
 
 def get_already_loaded_kg(deal_delivery, exclude=None):
@@ -151,3 +182,49 @@ def get_available_deliveries(exclude_dispatch=None):
 		exclude_condition="AND vd.name != %s" if exclude_dispatch else ""
 	), [exclude_dispatch] if exclude_dispatch else [], as_dict=True)
 	return result
+
+
+@frappe.whitelist()
+def create_delivery_for_dispatch(customer, dispatch_name, dispatch_date, items_data):
+	"""Auto-create a Deal Delivery from Vehicle Dispatch dialog.
+	Creates DD, submits it, returns DD details for VDI row insertion."""
+	if isinstance(items_data, str):
+		items_data = json.loads(items_data)
+
+	if not items_data:
+		frappe.throw("No items provided for delivery.")
+
+	dd = frappe.new_doc("Deal Delivery")
+	dd.customer = customer
+	dd.delivery_date = dispatch_date
+	dd.is_auto_created = 1
+	dd.vehicle_dispatch = dispatch_name
+
+	for item in items_data:
+		dd.append("items", {
+			"soda": item.get("soda") or "",
+			"deal_item": item.get("deal_item") or "",
+			"item": item["item"],
+			"pack_size": item["pack_size"],
+			"pack_weight_kg": flt(item.get("pack_weight_kg")),
+			"deliver_qty": flt(item["deliver_qty"]),
+			"bag_cost": flt(item.get("bag_cost", 0)),
+			"rate": flt(item["rate"]),
+			"amount": flt(item["deliver_qty"]) * flt(item["rate"]),
+		})
+
+	# Save triggers: set_extra_flag, validate_items (KG check), calculate_totals
+	dd.save(ignore_permissions=True)
+
+	# Submit triggers: update_deal_statuses, create_stock_entry
+	dd.submit()
+
+	return {
+		"name": dd.name,
+		"customer": dd.customer,
+		"customer_name": dd.customer_name,
+		"delivery_date": str(dd.delivery_date),
+		"total_packs": flt(dd.total_delivery_qty),
+		"total_kg": flt(dd.total_delivery_kg),
+		"total_amount": flt(dd.total_amount)
+	}

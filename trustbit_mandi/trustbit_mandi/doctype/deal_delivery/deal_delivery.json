@@ -13,6 +13,8 @@
   "column_break_delivery",
   "status",
   "amended_from",
+  "is_auto_created",
+  "vehicle_dispatch",
   "section_pending",
   "pending_summary_html",
   "section_qty",
@@ -87,6 +89,25 @@
    "read_only": 1
   },
   {
+   "default": "0",
+   "fieldname": "is_auto_created",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Auto Created",
+   "no_copy": 1,
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "vehicle_dispatch",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Vehicle Dispatch",
+   "no_copy": 1,
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
    "depends_on": "customer",
    "fieldname": "section_pending",
    "fieldtype": "Section Break",
@@ -151,7 +172,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-02-19 13:00:00.000000",
+ "modified": "2026-03-02 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Trustbit Mandi",
  "name": "Deal Delivery",

@@ -12,6 +12,15 @@ frappe.ui.form.on('Deal Delivery', {
 			frm.page.set_indicator(__('Cancelled'), 'red');
 		}
 
+		// Auto-created indicator
+		if (frm.doc.is_auto_created && frm.doc.vehicle_dispatch) {
+			frm.set_intro(
+				__('This delivery was auto-created from Vehicle Dispatch {0}',
+					['<a href="/app/vehicle-dispatch/' + frm.doc.vehicle_dispatch + '">' + frm.doc.vehicle_dispatch + '</a>']),
+				'blue'
+			);
+		}
+
 		// Show action buttons only in Draft mode
 		if (frm.doc.docstatus === 0) {
 			frm.add_custom_button(__('Get Items'), function() {
