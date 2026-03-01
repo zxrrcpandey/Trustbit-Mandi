@@ -17,6 +17,21 @@ frappe.ui.form.on('Vehicle Dispatch', {
 				get_deliveries_dialog(frm);
 			}).addClass('btn-primary');
 		}
+
+		// "Petrol Coupon" print button on saved forms
+		if (!frm.is_new()) {
+			frm.add_custom_button(__('Petrol Coupon'), function() {
+				window.open(
+					frappe.urllib.get_full_url(
+						'/printview?doctype=Vehicle Dispatch'
+						+ '&name=' + encodeURIComponent(frm.doc.name)
+						+ '&format=Petrol Coupon'
+						+ '&no_letterhead=1'
+					),
+					'_blank'
+				);
+			}, __('Print'));
+		}
 	},
 
 	vehicle: function(frm) {
