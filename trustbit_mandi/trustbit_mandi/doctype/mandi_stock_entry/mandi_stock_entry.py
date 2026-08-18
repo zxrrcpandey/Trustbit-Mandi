@@ -271,7 +271,9 @@ def get_current_stock(item=None, pack_size=None):
 
 def get_default_warehouse():
 	"""Get the default warehouse for Mandi operations."""
-	company = "Trustbit Mandi"
+	from trustbit_mandi.utils import get_mandi_company
+
+	company = get_mandi_company()
 	abbr = frappe.get_cached_value("Company", company, "abbr")
 	if not abbr:
 		return None

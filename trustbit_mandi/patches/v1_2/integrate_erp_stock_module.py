@@ -11,9 +11,23 @@ from frappe.utils import flt
 
 
 def execute():
-	company = "Trustbit Mandi"
-	if not frappe.db.exists("Company", company):
-		frappe.log_error(title="Patch: Company not found", message=company)
+	from trustbit_mandi.utils import get_mandi_company
+
+	# Was hardcoded to "Trustbit Mandi". On any other site this silently
+	# log_error'd and returned, so the patch appeared to run while creating no
+	# warehouses and setting no stock defaults — an install that looks green and
+	# is functionally inert. Resolve the site's company instead, and still skip
+	# quietly (not throw) when a site genuinely has no company yet, since patches
+	# run during install.
+	try:
+		company = get_mandi_company()
+	except Exception:
+		frappe.log_error(
+			title="Trustbit Mandi patch skipped",
+			message="No Company could be resolved; set Default Company in Global Defaults "
+			"and re-run: bench --site <site> execute "
+			"trustbit_mandi.patches.v1_2.integrate_erp_stock_module.execute",
+		)
 		return
 
 	abbr = frappe.db.get_value("Company", company, "abbr")

@@ -242,7 +242,9 @@ class VehicleDispatch(Document):
 		if not customer_items:
 			frappe.throw("No items found for customer {0}".format(customer))
 
-		company = "Trustbit Mandi"
+		from trustbit_mandi.utils import get_mandi_company
+
+		company = get_mandi_company()
 
 		si = frappe.new_doc("Sales Invoice")
 		si.customer = customer
