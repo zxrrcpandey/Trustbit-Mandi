@@ -20,7 +20,7 @@ add_to_apps_screen = [
 		"name": "trustbit_mandi",
 		"logo": "/assets/trustbit_mandi/images/trustbit-mandi.svg",
 		"title": "Trustbit Mandi",
-		"route": "/app/mandi",
+		"route": "/desk/mandi",
 	}
 ]
 
