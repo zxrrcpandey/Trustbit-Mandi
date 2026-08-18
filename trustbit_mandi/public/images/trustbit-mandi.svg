@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Trustbit Mandi">
+  <rect width="64" height="64" rx="14" fill="#16a34a"/>
+  <path d="M32 14c5 6 7 11 7 16s-3 9-7 12c-4-3-7-7-7-12s2-10 7-16z" fill="#fff"/>
+  <path d="M20 44c4-2 8-3 12-3s8 1 12 3v4c-4-2-8-3-12-3s-8 1-12 3z" fill="#fff" opacity=".85"/>
+</svg>

@@ -10,16 +10,19 @@ app_license = "mit"
 
 # required_apps = []
 
-# Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "trustbit_mandi",
-# 		"logo": "/assets/trustbit_mandi/logo.png",
-# 		"title": "Trustbit Mandi",
-# 		"route": "/trustbit_mandi",
-# 		"has_permission": "trustbit_mandi.api.permission.has_app_permission"
-# 	}
-# ]
+# Shown as an app tile on the desk apps screen (the launcher grid).
+# frappe's create_desktop_icons_from_installed_apps() only creates an "App" type
+# Desktop Icon for apps that declare this hook — and without that app icon the
+# app's workspace tile gets no parent_icon and never renders on /desk.
+# `route` and `logo` are indexed directly by that function, so both are required.
+add_to_apps_screen = [
+	{
+		"name": "trustbit_mandi",
+		"logo": "/assets/trustbit_mandi/images/trustbit-mandi.svg",
+		"title": "Trustbit Mandi",
+		"route": "/app/mandi",
+	}
+]
 
 # Includes in <head>
 # ------------------
