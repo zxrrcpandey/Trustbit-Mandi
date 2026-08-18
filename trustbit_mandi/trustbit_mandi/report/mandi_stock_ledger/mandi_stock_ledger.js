@@ -1,4 +1,4 @@
-frappe.query_reports["Stock Ledger"] = {
+frappe.query_reports["Mandi Stock Ledger"] = {
 	"filters": [
 		{
 			"fieldname": "from_date",
