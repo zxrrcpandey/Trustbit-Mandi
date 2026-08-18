@@ -1,0 +1,16 @@
+{
+ "app": "trustbit_mandi",
+ "docstatus": 0,
+ "doctype": "Desktop Icon",
+ "hidden": 1,
+ "icon_type": "App",
+ "idx": 100,
+ "label": "Trustbit Mandi",
+ "link": "/desk/mandi",
+ "link_type": "External",
+ "logo_url": "/assets/trustbit_mandi/images/trustbit-mandi.svg",
+ "modified": "2026-08-18 23:00:00.000000",
+ "name": "Trustbit Mandi",
+ "roles": [],
+ "standard": 1
+}

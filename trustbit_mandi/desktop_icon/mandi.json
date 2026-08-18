@@ -1,0 +1,18 @@
+{
+ "app": "trustbit_mandi",
+ "docstatus": 0,
+ "doctype": "Desktop Icon",
+ "hidden": 0,
+ "icon": "agriculture",
+ "icon_type": "Link",
+ "idx": 1,
+ "label": "Mandi",
+ "link_to": "Mandi",
+ "link_type": "Workspace Sidebar",
+ "modified": "2026-08-18 23:00:00.000000",
+ "name": "Mandi",
+ "parent_icon": "Trustbit Mandi",
+ "restrict_removal": 0,
+ "roles": [],
+ "standard": 1
+}
