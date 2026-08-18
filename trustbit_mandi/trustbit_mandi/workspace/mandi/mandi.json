@@ -489,5 +489,7 @@
    "type": "Report"
   }
  ],
- "title": "Mandi"
+ "title": "Mandi",
+ "type": "Workspace",
+ "app": "trustbit_mandi"
 }
