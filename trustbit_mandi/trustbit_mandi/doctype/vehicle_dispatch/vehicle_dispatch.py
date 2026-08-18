@@ -254,6 +254,21 @@ class VehicleDispatch(Document):
 		si.update_stock = 0
 		si.set_posting_time = 1
 
+		# Set the billing address up front. india_compliance v16 added a
+		# before_validate hook on Sales Invoice that flags any new document whose
+		# caller left customer_address empty (_party_address_not_set), then later
+		# re-fetches GST details and REPLACES the taxes table after ERPNext has
+		# already computed totals — leaving tax rows with no computed amount, which
+		# its new validate_item_tax_template() rejects. Populating the address here
+		# means the flag is never set and that path never runs. Harmless on v15 and
+		# on sites without india_compliance: it is the address ERPNext would have
+		# resolved anyway in set_missing_values().
+		from frappe.contacts.doctype.address.address import get_default_address
+
+		billing_address = get_default_address("Customer", customer)
+		if billing_address:
+			si.customer_address = billing_address
+
 		income_account = frappe.get_cached_value("Company", company, "default_income_account")
 		cost_center = frappe.get_cached_value("Company", company, "cost_center")
 
