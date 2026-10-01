@@ -6,13 +6,20 @@ frappe.ui.form.on('Grain Purchase', {
         if (frm.is_new() && !frm.doc.transaction_no) {
             generate_transaction_no(frm);
         }
-        if (frm.is_new()) {
-            if (!frm.doc.mandi_tax_rate) {
-                frm.set_value('mandi_tax_rate', 1);
-            }
-            if (!frm.doc.nirashrit_tax_rate) {
-                frm.set_value('nirashrit_tax_rate', 0.2);
-            }
+        if (frm.is_new() && (!frm.doc.mandi_tax_type || !frm.doc.nirashrit_tax_type)) {
+            frappe.call({
+                method: 'trustbit_mandi.trustbit_mandi.doctype.grain_purchase.grain_purchase.get_default_tax_types',
+                callback: function(r) {
+                    let defaults = r.message || {};
+                    // Setting the type triggers the *_tax_type handlers, which fetch the rate
+                    if (!frm.doc.mandi_tax_type && defaults.mandi_tax_type) {
+                        frm.set_value('mandi_tax_type', defaults.mandi_tax_type);
+                    }
+                    if (!frm.doc.nirashrit_tax_type && defaults.nirashrit_tax_type) {
+                        frm.set_value('nirashrit_tax_type', defaults.nirashrit_tax_type);
+                    }
+                }
+            });
         }
     },
 
@@ -262,8 +269,8 @@ function calculate_taxes(frm) {
     if (!frm.doc) return;
 
     let amount = flt(frm.doc.amount, 0);
-    let mandi_tax_rate = flt(frm.doc.mandi_tax_rate, 1);
-    let nirashrit_tax_rate = flt(frm.doc.nirashrit_tax_rate, 0.2);
+    let mandi_tax_rate = flt(frm.doc.mandi_tax_rate);
+    let nirashrit_tax_rate = flt(frm.doc.nirashrit_tax_rate);
 
     let mandi_tax = Math.round((amount * mandi_tax_rate) / 100 * 100) / 100;
     let nirashrit_tax = Math.round((amount * nirashrit_tax_rate) / 100 * 100) / 100;
@@ -366,7 +373,7 @@ function update_tax_balance_dashboard(frm, data) {
             <div class="row">
                 <div class="col-sm-4">
                     <div style="text-align: center; padding: 10px; background: white; border-radius: 5px; border-left: 4px solid ${mandi_color};">
-                        <div style="font-size: 12px; color: #888;">Mandi Tax (1%)</div>
+                        <div style="font-size: 12px; color: #888;">Mandi Tax (${flt(frm.doc.mandi_tax_rate)}%)</div>
                         <div style="font-size: 11px; color: #666;">
                             Paid: ${format_number(data.mandi_paid)} | Due: ${format_number(data.mandi_liability)}
                         </div>
@@ -380,7 +387,7 @@ function update_tax_balance_dashboard(frm, data) {
                 </div>
                 <div class="col-sm-4">
                     <div style="text-align: center; padding: 10px; background: white; border-radius: 5px; border-left: 4px solid ${nirashrit_color};">
-                        <div style="font-size: 12px; color: #888;">Nirashrit Tax (0.2%)</div>
+                        <div style="font-size: 12px; color: #888;">Nirashrit Tax (${flt(frm.doc.nirashrit_tax_rate)}%)</div>
                         <div style="font-size: 11px; color: #666;">
                             Paid: ${format_number(data.nirashrit_paid)} | Due: ${format_number(data.nirashrit_liability)}
                         </div>

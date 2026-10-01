@@ -214,11 +214,11 @@
 			<div class="section-title">Tax Deduction</div>
 			<table>
 				<tr>
-					<td class="label-cell">Mandi Tax ({{ doc.mandi_tax_rate or 1 }}%)</td>
+					<td class="label-cell">Mandi Tax ({{ frappe.utils.flt(doc.mandi_tax_rate) }}%)</td>
 					<td>{{ frappe.utils.fmt_money(doc.mandi_tax, currency='INR') }}</td>
 				</tr>
 				<tr>
-					<td class="label-cell">Nirashrit Tax ({{ doc.nirashrit_tax_rate or 0.2 }}%)</td>
+					<td class="label-cell">Nirashrit Tax ({{ frappe.utils.flt(doc.nirashrit_tax_rate) }}%)</td>
 					<td>{{ frappe.utils.fmt_money(doc.nirashrit_tax, currency='INR') }}</td>
 				</tr>
 				<tr>

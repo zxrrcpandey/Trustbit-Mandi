@@ -39,34 +39,25 @@ class GrainPurchase(Document):
 			self.transaction_no = f"TXN-{today}-{random_num}"
 
 	def set_default_tax_rates(self):
-		"""Fetch tax rates from Mandi Tax Type master"""
+		"""Fill empty tax types with the Mandi Tax Type marked Default for each category"""
+		defaults = get_default_tax_types()
 		if not self.mandi_tax_type:
-			self.mandi_tax_type = "Mandi Tax"
+			self.mandi_tax_type = defaults.get("mandi_tax_type")
 		if not self.nirashrit_tax_type:
-			self.nirashrit_tax_type = "Nirashrit Tax"
+			self.nirashrit_tax_type = defaults.get("nirashrit_tax_type")
 		self.fetch_tax_rates()
 
 	def fetch_tax_rates(self):
 		"""Fetch tax rates from Mandi Tax Type master"""
 		if self.mandi_tax_type:
-			try:
-				rate = frappe.db.get_value("Mandi Tax Type", self.mandi_tax_type, "rate")
-				if rate is not None:
-					self.mandi_tax_rate = flt(rate)
-			except Exception:
-				pass
-		if not self.mandi_tax_rate:
-			self.mandi_tax_rate = 1
+			rate = frappe.db.get_value("Mandi Tax Type", self.mandi_tax_type, "rate")
+			if rate is not None:
+				self.mandi_tax_rate = flt(rate)
 
 		if self.nirashrit_tax_type:
-			try:
-				rate = frappe.db.get_value("Mandi Tax Type", self.nirashrit_tax_type, "rate")
-				if rate is not None:
-					self.nirashrit_tax_rate = flt(rate)
-			except Exception:
-				pass
-		if not self.nirashrit_tax_rate:
-			self.nirashrit_tax_rate = 0.2
+			rate = frappe.db.get_value("Mandi Tax Type", self.nirashrit_tax_type, "rate")
+			if rate is not None:
+				self.nirashrit_tax_rate = flt(rate)
 
 	def fetch_hamali_rate(self):
 		"""Fetch hamali rate from Hamali Rate Master based on contract date and bag weight"""
@@ -158,8 +149,8 @@ class GrainPurchase(Document):
 			self.net_amount = round(self.amount - self.hamali)
 
 		# Tax Calculations
-		mandi_tax_rate = flt(self.mandi_tax_rate, 2) or 1
-		nirashrit_tax_rate = flt(self.nirashrit_tax_rate, 2) or 0.2
+		mandi_tax_rate = flt(self.mandi_tax_rate, 2)
+		nirashrit_tax_rate = flt(self.nirashrit_tax_rate, 2)
 
 		self.mandi_tax = round((self.amount * mandi_tax_rate) / 100, 2)
 		self.nirashrit_tax = round((self.amount * nirashrit_tax_rate) / 100, 2)
@@ -167,3 +158,16 @@ class GrainPurchase(Document):
 
 		# Balance Amount = Net Amount - Paid Amount
 		self.balance_amount = flt(self.net_amount) - flt(self.paid_amount)
+
+
+@frappe.whitelist()
+def get_default_tax_types():
+	"""Return the active Mandi Tax Type marked Default for each Tax Category"""
+	return {
+		"mandi_tax_type": frappe.db.get_value(
+			"Mandi Tax Type", {"tax_category": "Mandi Tax", "is_default": 1, "is_active": 1}, "name"
+		),
+		"nirashrit_tax_type": frappe.db.get_value(
+			"Mandi Tax Type", {"tax_category": "Nirashrit Tax", "is_default": 1, "is_active": 1}, "name"
+		),
+	}

@@ -8,8 +8,10 @@
  "field_order": [
   "tax_type_name",
   "rate",
+  "tax_category",
   "column_break_main",
   "is_active",
+  "is_default",
   "description"
  ],
  "fields": [
@@ -29,6 +31,15 @@
    "reqd": 1
   },
   {
+   "allow_in_quick_entry": 1,
+   "description": "Which Grain Purchase tax this rate is used for",
+   "fieldname": "tax_category",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Tax Category",
+   "options": "\nMandi Tax\nNirashrit Tax"
+  },
+  {
    "fieldname": "column_break_main",
    "fieldtype": "Column Break"
   },
@@ -39,6 +50,16 @@
    "label": "Is Active"
   },
   {
+   "allow_in_quick_entry": 1,
+   "default": "0",
+   "depends_on": "tax_category",
+   "description": "Auto-filled on new Grain Purchases. Only one per Tax Category.",
+   "fieldname": "is_default",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Default"
+  },
+  {
    "fieldname": "description",
    "fieldtype": "Small Text",
    "label": "Description"
@@ -46,7 +67,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-02-05 10:00:00.000000",
+ "modified": "2026-10-01 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Trustbit Mandi",
  "name": "Mandi Tax Type",

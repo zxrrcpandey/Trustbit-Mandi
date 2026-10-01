@@ -246,7 +246,6 @@
    "label": "Tax Calculation"
   },
   {
-   "default": "Mandi Tax",
    "fieldname": "mandi_tax_type",
    "fieldtype": "Link",
    "label": "Mandi Tax Type",
@@ -270,7 +269,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "default": "Nirashrit Tax",
    "fieldname": "nirashrit_tax_type",
    "fieldtype": "Link",
    "label": "Nirashrit Tax Type",
@@ -413,7 +411,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-02-05 10:00:00.000000",
+ "modified": "2026-10-01 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Trustbit Mandi",
  "name": "Grain Purchase",
