@@ -73,13 +73,16 @@ def get_data(filters):
 		total_wt = sum([(r.get("actual_weight") or 0) for r in rows])
 		total_amt = sum([(r.get("amount") or 0) for r in rows])
 
+		# The only total: the report's built-in "Add Total Row" is off, because it added this row to
+		# the rows above and showed a second, doubled total. S.No. and Rate are left empty; the
+		# report's formatter (mandi_purchase_report.js) shows the row in bold.
 		rows.append({
-			"sno": "",
-			"farmer_name": "<b>TOTAL</b>",
+			"farmer_name": _("TOTAL"),
 			"expected_bag": total_exp,
 			"actual_bag": total_bag,
 			"actual_weight": total_wt,
-			"amount": total_amt
+			"amount": total_amt,
+			"is_total_row": 1,
 		})
 
 	return rows

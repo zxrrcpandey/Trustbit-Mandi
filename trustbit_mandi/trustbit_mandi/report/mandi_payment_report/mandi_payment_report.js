@@ -7,13 +7,15 @@ frappe.query_reports["Mandi Payment Report"] = {
 			print_report_pdf(report, "Mandi Payment Report");
 		});
 	},
-	// The Total row added by the server (is_total_row) is shown in bold.
+	// The Total row added by the server (is_total_row) is shown in bold; its empty cells stay empty
+	// instead of showing 0 or a zero amount.
 	formatter: function(value, row, column, data, default_formatter) {
-		value = default_formatter(value, row, column, data);
-		if (data && data.is_total_row && value !== null && value !== undefined && value !== "") {
-			value = "<b>" + value + "</b>";
+		if (data && data.is_total_row) {
+			const raw = data[column.fieldname];
+			if (raw === undefined || raw === null || raw === "") return "";
+			return "<b>" + default_formatter(value, row, column, data) + "</b>";
 		}
-		return value;
+		return default_formatter(value, row, column, data);
 	},
 	"filters": [
 		{
