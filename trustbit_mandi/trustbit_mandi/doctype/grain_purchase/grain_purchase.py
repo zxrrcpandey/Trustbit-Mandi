@@ -3,8 +3,17 @@
 
 import frappe
 from frappe.model.document import Document
-from frappe.utils import flt, nowdate, now_datetime, getdate, get_datetime
+from frappe.utils import flt, nowdate, now_datetime, getdate, get_datetime, rounded
 import random
+
+
+def _round(value, precision=0):
+	"""Round half up (0.49 -> 0, 0.50 -> 1), the same way the form's Math.round does.
+
+	Python's built-in round() rounds an exact half to the nearest EVEN number, so the server saved
+	34,708.50 as 34,708 after the screen had shown 34,709. Named explicitly here so the result does
+	not depend on System Settings > Rounding Method."""
+	return rounded(flt(value), precision, rounding_method="Commercial Rounding")
 
 
 class GrainPurchase(Document):
@@ -128,33 +137,33 @@ class GrainPurchase(Document):
 		actual_bags = flt(self.actual_bag, 2)
 		nos_kg = flt(self.nos_kg, 2)
 
-		self.actual_weight = round((actual_bags * (kg_per_bag / 100)) + (nos_kg / 100), 2)
+		self.actual_weight = _round((actual_bags * (kg_per_bag / 100)) + (nos_kg / 100), 2)
 
 		# Amount Calculation
 		auction_rate = flt(self.auction_rate, 2)
-		self.amount = round(auction_rate * self.actual_weight, 2)
+		self.amount = _round(auction_rate * self.actual_weight, 2)
 
 		# Rounded Off Amount
-		self.rounded_amount = round(self.amount)
+		self.rounded_amount = _round(self.amount)
 		self.rounded_off = self.rounded_amount - self.amount
 
 		# Hamali Calculation
 		hamali_rate = flt(self.hamali_rate, 2)
 		if self.hamali_rate_include:
 			self.hamali = 0
-			self.net_amount = round(self.amount)
+			self.net_amount = _round(self.amount)
 		else:
 			total_bags_for_hamali = actual_bags + (nos_kg / 100)
-			self.hamali = round(total_bags_for_hamali * hamali_rate)
-			self.net_amount = round(self.amount - self.hamali)
+			self.hamali = _round(total_bags_for_hamali * hamali_rate)
+			self.net_amount = _round(self.amount - self.hamali)
 
 		# Tax Calculations
 		mandi_tax_rate = flt(self.mandi_tax_rate, 2)
 		nirashrit_tax_rate = flt(self.nirashrit_tax_rate, 2)
 
-		self.mandi_tax = round((self.amount * mandi_tax_rate) / 100, 2)
-		self.nirashrit_tax = round((self.amount * nirashrit_tax_rate) / 100, 2)
-		self.total_tax = round(self.mandi_tax + self.nirashrit_tax, 2)
+		self.mandi_tax = _round((self.amount * mandi_tax_rate) / 100, 2)
+		self.nirashrit_tax = _round((self.amount * nirashrit_tax_rate) / 100, 2)
+		self.total_tax = _round(self.mandi_tax + self.nirashrit_tax, 2)
 
 		# Balance Amount = Net Amount - Paid Amount
 		self.balance_amount = flt(self.net_amount) - flt(self.paid_amount)
