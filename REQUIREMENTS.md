@@ -1,5 +1,23 @@
 # Trustbit Mandi - Requirements Document
 
+> **Read this first (banner added 2026-10-06).** This document describes the app as it was
+> written in **February 2026**, on Frappe v15. The body below has not been rewritten. What has
+> changed since:
+>
+> | When | Change |
+> |---|---|
+> | Feb–Mar 2026 | Added after this document: Deal, Deal Price List, Deal Delivery, Vehicle Dispatch (loading, payments, petrol coupon), Mandi Stock Entry, Package Bag Master, Vehicle Master, and the reports Deal Ledger, Deal Price List Ledger, Deal Delivery Report, Current Stock |
+> | 2026-08-18 | Ported to **ERPNext v16**; the same `main` branch now runs on v15 and v16 |
+> | 2026-08-18 | The Company is resolved at runtime (Global Defaults, or the only company), never hard-coded |
+> | 2026-08-18 | The app's `Stock Ledger` report is now **`Mandi Stock Ledger`**; under the old name it overwrote ERPNext's own report |
+> | 2026-08-18 | v16 desk: launcher icon, desktop tiles, grouped sidebar; routes use `/desk/…` |
+> | 2026-10-01 | Mandi Tax Type has **Tax Category** and **Is Default** (one per category). Grain Purchase takes its tax types from those defaults. The fixed names and the fallback rates (Mandi Tax 1 %, Nirashrit Tax 0.2 %) described below are **gone** |
+> | 2026-10-06 | Grain Purchase rounds **half up** (0.49 → 0, 0.50 → 1) on the server as on the form. Where a formula below says `round(...)`, read it as half-up rounding; Python's own `round()` sent an exact half to the nearest even number |
+> | 2026-10-06 | Mandi Payment Report ends in a bold Total row; Mandi Purchase Report shows one total row (it showed two, the second doubled) |
+>
+> The site names in this document are those of February 2026. Current installation notes are in
+> `README.md`.
+
 ## Overview
 Custom ERPNext app for Agricultural Market (Mandi) Operations - Grain purchase, tax management, and payment processing.
 
