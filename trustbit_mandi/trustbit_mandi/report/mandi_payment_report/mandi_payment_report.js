@@ -7,6 +7,14 @@ frappe.query_reports["Mandi Payment Report"] = {
 			print_report_pdf(report, "Mandi Payment Report");
 		});
 	},
+	// The Total row added by the server (is_total_row) is shown in bold.
+	formatter: function(value, row, column, data, default_formatter) {
+		value = default_formatter(value, row, column, data);
+		if (data && data.is_total_row && value !== null && value !== undefined && value !== "") {
+			value = "<b>" + value + "</b>";
+		}
+		return value;
+	},
 	"filters": [
 		{
 			"fieldname": "from_date",

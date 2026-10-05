@@ -8,7 +8,9 @@ from frappe import _
 def execute(filters=None):
 	columns = get_columns()
 	data = get_data(filters)
+	# summary first: it sums the rows, and the total row must not be counted twice
 	report_summary = get_report_summary(data)
+	data = add_total_row(data)
 	return columns, data, None, None, report_summary
 
 
@@ -93,6 +95,28 @@ def get_data(filters):
 		row["sno"] = sno
 
 	return raw_data
+
+
+def add_total_row(data):
+	"""Append a Total row at the bottom. Rate and S.No. are left blank: adding them up means nothing.
+	The row carries is_total_row so the report's formatter (mandi_payment_report.js) shows it in bold."""
+	if not data:
+		return data
+
+	def total(fieldname):
+		return sum([(r.get(fieldname) or 0) for r in data])
+
+	data.append({
+		"farmer_name": _("Total"),
+		"expected_bag": total("expected_bag"),
+		"actual_bag": total("actual_bag"),
+		"actual_weight": total("actual_weight"),
+		"amount": total("amount"),
+		"hamali": total("hamali"),
+		"net_amount": total("net_amount"),
+		"is_total_row": 1,
+	})
+	return data
 
 
 def get_report_summary(data):
