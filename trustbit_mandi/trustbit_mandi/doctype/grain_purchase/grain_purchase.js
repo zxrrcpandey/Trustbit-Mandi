@@ -40,6 +40,8 @@ frappe.ui.form.on('Grain Purchase', {
             show_tax_balance_dialog();
         }, __('Actions'));
 
+        setup_payment_actions(frm);
+
         if (frm.is_new() && frm.doc.contract_date) {
             setTimeout(function() {
                 fetch_hamali_rate(frm, false);
@@ -120,19 +122,24 @@ frappe.ui.form.on('Grain Purchase', {
         calculate_taxes(frm);
     },
 
-    paid_amount: function(frm) {
-        let net_amount = flt(frm.doc.net_amount, 0);
-        let paid_amount = flt(frm.doc.paid_amount, 0);
-        frm.set_value('balance_amount', net_amount - paid_amount);
-
-        // Auto-set payment status based on paid amount
-        if (paid_amount <= 0) {
-            frm.set_value('payment_status', 'Pending');
-        } else if (paid_amount >= net_amount) {
-            frm.set_value('payment_status', 'Paid');
-        } else {
-            frm.set_value('payment_status', 'Partial');
+    payment_status: function(frm) {
+        // Paid is reached through Confirm Payment and left through Reverse Payment, never by picking
+        // it here. The server refuses it as well; this only saves the user a failed save.
+        let saved = frm._saved_payment_status || 'Pending';
+        let picked = frm.doc.payment_status || 'Pending';
+        if (picked === saved) return;
+        if (picked === 'Paid' || saved === 'Paid') {
+            frm.set_value('payment_status', saved);
+            frappe.msgprint({
+                title: __('Use the payment buttons'),
+                indicator: 'orange',
+                message: picked === 'Paid'
+                    ? __('A purchase becomes Paid through the Confirm Payment button.')
+                    : __('This purchase is paid. Use Actions > Reverse Payment first.')
+            });
+            return;
         }
+        set_pending_amounts(frm, flt(frm.doc.net_amount, 0));
     },
 
     bank_account: function(frm) {
@@ -258,11 +265,109 @@ function calculate_values(frm) {
     frappe.model.set_value(frm.doctype, frm.docname, 'hamali', hamali);
     frappe.model.set_value(frm.doctype, frm.docname, 'net_amount', net_amount);
 
-    // Recalculate balance when net_amount changes
-    let paid_amount = flt(frm.doc.paid_amount, 0);
-    frappe.model.set_value(frm.doctype, frm.docname, 'balance_amount', net_amount - paid_amount);
+    set_pending_amounts(frm, net_amount);
 
     setTimeout(function() { calculate_taxes(frm); }, 100);
+}
+
+// While a purchase is Pending, Paid Amount is only the prepared figure and the whole Net Amount is
+// outstanding. A cancelled purchase owes nothing. A paid purchase is left exactly as it is.
+// The server sets the same values on save (set_payment_amounts in grain_purchase.py).
+function set_pending_amounts(frm, net_amount) {
+    let status = frm.doc.payment_status || 'Pending';
+    if (status === 'Pending') {
+        frappe.model.set_value(frm.doctype, frm.docname, 'paid_amount', net_amount);
+        frappe.model.set_value(frm.doctype, frm.docname, 'balance_amount', net_amount);
+    } else if (status === 'Cancelled') {
+        frappe.model.set_value(frm.doctype, frm.docname, 'paid_amount', 0);
+        frappe.model.set_value(frm.doctype, frm.docname, 'balance_amount', 0);
+    }
+}
+
+function setup_payment_actions(frm) {
+    if (frm.is_new()) {
+        frm._saved_payment_status = 'Pending';
+        return;
+    }
+    if (!frm.is_dirty()) {
+        frm._saved_payment_status = frm.doc.payment_status || 'Pending';
+        let colour = { 'Pending': 'orange', 'Paid': 'green', 'Cancelled': 'gray' }[frm._saved_payment_status];
+        if (colour) frm.page.set_indicator(__(frm._saved_payment_status), colour);
+    }
+    let status = frm._saved_payment_status || 'Pending';
+    let is_admin = frappe.user.has_role('System Manager');
+    if (status === 'Pending' && (is_admin || frappe.user.has_role('Mandi Accounts'))) {
+        frm.add_custom_button(__('Confirm Payment'), function() {
+            confirm_payment_dialog(frm);
+        }).addClass('btn-primary');
+    }
+    if (status === 'Paid' && is_admin) {
+        frm.add_custom_button(__('Reverse Payment'), function() {
+            reverse_payment_dialog(frm);
+        }, __('Actions'));
+    }
+}
+
+function confirm_payment_dialog(frm) {
+    if (frm.is_dirty()) {
+        frappe.msgprint(__('Save the purchase first, then confirm the payment.'));
+        return;
+    }
+    let field = frappe.meta.get_docfield('Grain Purchase', 'payment_mode', frm.doc.name);
+    let modes = ((field && field.options) || '').split('\n').filter(function(m) { return m; });
+    let dialog = new frappe.ui.Dialog({
+        title: __('Confirm Payment'),
+        fields: [
+            { fieldname: 'net_amount', label: __('Amount paid (the full Net Amount)'), fieldtype: 'Currency', read_only: 1, default: frm.doc.net_amount },
+            { fieldname: 'pay_date', label: __('Pay Date'), fieldtype: 'Date', reqd: 1, default: frappe.datetime.get_today() },
+            { fieldname: 'payment_mode', label: __('Payment Mode'), fieldtype: 'Select', options: [''].concat(modes).join('\n'), reqd: 1, default: frm.doc.payment_mode || '' },
+            { fieldname: 'payment_details', label: __('Payment Details'), fieldtype: 'Small Text', default: frm.doc.payment_details || '' }
+        ],
+        primary_action_label: __('Confirm Payment'),
+        primary_action: function(values) {
+            frappe.call({
+                method: 'trustbit_mandi.trustbit_mandi.doctype.grain_purchase.grain_purchase.confirm_payment',
+                args: {
+                    name: frm.doc.name,
+                    pay_date: values.pay_date,
+                    payment_mode: values.payment_mode,
+                    payment_details: values.payment_details,
+                    amount: frm.doc.net_amount
+                },
+                freeze: true,
+                freeze_message: __('Confirming payment'),
+                callback: function(r) {
+                    if (!r.exc) {
+                        dialog.hide();
+                        frappe.show_alert({ message: __('Payment confirmed'), indicator: 'green' }, 4);
+                        frm.reload_doc();
+                    }
+                }
+            });
+        }
+    });
+    dialog.show();
+}
+
+function reverse_payment_dialog(frm) {
+    frappe.prompt(
+        [{ fieldname: 'reason', label: __('Reason for reversing the payment'), fieldtype: 'Small Text', reqd: 1 }],
+        function(values) {
+            frappe.call({
+                method: 'trustbit_mandi.trustbit_mandi.doctype.grain_purchase.grain_purchase.reverse_payment',
+                args: { name: frm.doc.name, reason: values.reason },
+                freeze: true,
+                callback: function(r) {
+                    if (!r.exc) {
+                        frappe.show_alert({ message: __('Payment reversed. The purchase is Pending again.'), indicator: 'orange' }, 5);
+                        frm.reload_doc();
+                    }
+                }
+            });
+        },
+        __('Reverse Payment'),
+        __('Reverse')
+    );
 }
 
 function calculate_taxes(frm) {

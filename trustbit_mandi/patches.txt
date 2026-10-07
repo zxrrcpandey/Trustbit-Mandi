@@ -13,3 +13,4 @@ trustbit_mandi.patches.v1_2.create_stock_entries_for_existing_deliveries
 trustbit_mandi.patches.v1_2.integrate_erp_stock_module
 trustbit_mandi.patches.v1_3.backfill_vdi_loaded_kg
 trustbit_mandi.patches.v1_4.set_default_mandi_tax_types
+trustbit_mandi.patches.v1_5.pending_purchases_owe_net_amount

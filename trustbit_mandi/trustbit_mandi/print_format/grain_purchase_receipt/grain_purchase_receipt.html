@@ -252,7 +252,8 @@
 			<td class="label-cell">Payment Mode</td>
 			<td>{{ doc.payment_mode or '' }}</td>
 			<td class="label-cell">Paid Amount</td>
-			<td><strong>{{ frappe.utils.fmt_money(doc.paid_amount, currency='INR') if doc.paid_amount else '₹ 0.00' }}</strong></td>
+			{# While a purchase is Pending, Paid Amount only holds the prepared figure; nothing has been paid yet. #}
+			<td><strong>{{ frappe.utils.fmt_money(doc.paid_amount, currency='INR') if (doc.paid_amount and doc.payment_status != 'Pending') else '₹ 0.00' }}</strong></td>
 		</tr>
 		<tr>
 			<td class="label-cell">Balance Amount</td>
@@ -285,7 +286,7 @@
 	<div class="amount-box">
 		<div class="label">NET PAYABLE AMOUNT</div>
 		<div class="value">{{ frappe.utils.fmt_money(doc.net_amount, currency='INR') }}</div>
-		{% if doc.paid_amount and doc.balance_amount and doc.balance_amount > 0 %}
+		{% if doc.payment_status == 'Partial' and doc.paid_amount and doc.balance_amount and doc.balance_amount > 0 %}
 		<div style="font-size: 13px; color: red; margin-top: 5px;">
 			Paid: {{ frappe.utils.fmt_money(doc.paid_amount, currency='INR') }} | Balance Due: {{ frappe.utils.fmt_money(doc.balance_amount, currency='INR') }}
 		</div>

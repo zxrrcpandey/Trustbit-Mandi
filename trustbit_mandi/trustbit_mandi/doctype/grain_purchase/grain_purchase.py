@@ -2,9 +2,13 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt, nowdate, now_datetime, getdate, get_datetime, rounded
+from frappe.utils import flt, fmt_money, formatdate, nowdate, now_datetime, getdate, get_datetime, rounded
 import random
+
+# Holders of this role (and System Managers) confirm that a purchase has been paid.
+PAYMENT_ROLE = "Mandi Accounts"
 
 
 def _round(value, precision=0):
@@ -25,20 +29,90 @@ class GrainPurchase(Document):
 
 	def before_save(self):
 		"""Calculate all values before saving"""
-		self.check_paid_modification()
-		self.fetch_tax_rates()
-		self.fetch_hamali_rate()  # Refetch rate based on current kg_of_bag
+		saved = self.saved_payment()
+		self.check_payment_status_change(saved)
+		self.check_paid_modification(saved)
+		if not self.is_frozen_as_paid(saved):
+			# A paid purchase keeps the rates it was paid at; everything else follows the masters.
+			self.fetch_tax_rates()
+			self.fetch_hamali_rate()  # Refetch rate based on current kg_of_bag
 		self.fetch_bank_details()
 		self.calculate_values()
+		self.set_payment_amounts(saved)
 
-	def check_paid_modification(self):
+	# ---- payment -------------------------------------------------------------------------------
+	# A purchase is Pending until someone confirms the payment (confirm_payment below). While it is
+	# Pending, Paid Amount is only the prepared figure, always equal to Net Amount, and the whole Net
+	# Amount is outstanding. Filling a field never settles anything. Paid means paid in full, once.
+
+	def saved_payment(self):
+		"""Payment status and amounts as they are in the database, or None for a new purchase."""
+		if self.is_new():
+			return None
+		return frappe.db.get_value(
+			"Grain Purchase", self.name, ["payment_status", "net_amount", "paid_amount", "balance_amount"], as_dict=True
+		)
+
+	def is_frozen_as_paid(self, saved):
+		return bool(saved and saved.payment_status == "Paid" and not self.flags.reversing_payment)
+
+	def check_payment_status_change(self, saved):
+		"""Paid is reached only through Confirm Payment and left only through Reverse Payment."""
+		self.payment_status = self.payment_status or "Pending"
+		was = saved.payment_status if saved else None
+		if self.payment_status == was:
+			return
+		if self.payment_status == "Paid" and not self.flags.confirming_payment:
+			frappe.throw(
+				_("A purchase becomes Paid only through the Confirm Payment button. Save it as Pending first."),
+				title=_("Payment not confirmed"),
+			)
+		if was == "Paid" and not self.flags.reversing_payment:
+			frappe.throw(
+				_("This purchase is paid. Use Reverse Payment before changing its payment status."),
+				title=_("Payment already confirmed"),
+			)
+
+	def check_paid_modification(self, saved):
 		"""Prevent non-admin users from modifying paid entries"""
-		if not self.is_new() and self.payment_status == "Paid":
+		if saved and saved.payment_status == "Paid" and not self.flags.reversing_payment:
 			if "System Manager" not in frappe.get_roles(frappe.session.user):
 				frappe.throw(
 					"Payment is already done. Only Admin (System Manager) can modify paid entries.",
 					frappe.PermissionError
 				)
+
+	def set_payment_amounts(self, saved):
+		"""Paid Amount and the outstanding (Balance Amount) follow the payment status, never the other way."""
+		if self.flags.confirming_payment:
+			offered = self.flags.confirming_amount
+			if offered is not None and flt(offered, 2) != flt(self.net_amount, 2):
+				frappe.throw(
+					_("The payment must be the full Net Amount, {0}. Part payments and overpayments are not accepted.").format(
+						fmt_money(self.net_amount, currency="INR")
+					),
+					title=_("Not the full amount"),
+				)
+			self.paid_amount = flt(self.net_amount)
+			self.balance_amount = 0
+		elif self.is_frozen_as_paid(saved):
+			# Already paid: the amounts stay exactly as recorded, whatever they are. Records marked Paid
+			# before this rule existed, some with no Paid Amount at all, are deliberately left untouched.
+			if flt(self.net_amount, 2) != flt(saved.net_amount, 2):
+				frappe.throw(
+					_("Net Amount of a paid purchase cannot change ({0} to {1}). Reverse the payment, correct the purchase, then confirm the payment again.").format(
+						fmt_money(saved.net_amount, currency="INR"), fmt_money(self.net_amount, currency="INR")
+					),
+					title=_("Purchase is paid"),
+				)
+			self.paid_amount = saved.paid_amount
+			self.balance_amount = saved.balance_amount
+		elif self.payment_status == "Cancelled":
+			self.paid_amount = 0
+			self.balance_amount = 0
+		else:
+			self.paid_amount = flt(self.net_amount)
+			self.balance_amount = flt(self.net_amount)
 
 	def generate_transaction_no(self):
 		"""Auto-generate transaction number"""
@@ -165,8 +239,7 @@ class GrainPurchase(Document):
 		self.nirashrit_tax = _round((self.amount * nirashrit_tax_rate) / 100, 2)
 		self.total_tax = _round(self.mandi_tax + self.nirashrit_tax, 2)
 
-		# Balance Amount = Net Amount - Paid Amount
-		self.balance_amount = flt(self.net_amount) - flt(self.paid_amount)
+		# Paid Amount and Balance Amount are set from the payment status, in set_payment_amounts().
 
 
 @frappe.whitelist()
@@ -180,3 +253,66 @@ def get_default_tax_types():
 			"Mandi Tax Type", {"tax_category": "Nirashrit Tax", "is_default": 1, "is_active": 1}, "name"
 		),
 	}
+
+
+def _may_confirm_payment():
+	roles = frappe.get_roles(frappe.session.user)
+	return PAYMENT_ROLE in roles or "System Manager" in roles
+
+
+@frappe.whitelist()
+def confirm_payment(name, pay_date=None, payment_mode=None, payment_details=None, amount=None):
+	"""Record that a Pending purchase has been paid in full. The only way a purchase becomes Paid.
+
+	Takes a lock on the purchase first, so two people confirming at the same moment cannot both succeed."""
+	if not _may_confirm_payment():
+		frappe.throw(_("Only {0} can confirm a payment.").format(PAYMENT_ROLE), frappe.PermissionError)
+
+	doc = frappe.get_doc("Grain Purchase", name, for_update=True)
+	if doc.payment_status == "Paid":
+		frappe.throw(_("Payment for {0} is already confirmed. Nothing was changed.").format(name), title=_("Already paid"))
+	if doc.payment_status != "Pending":
+		frappe.throw(_("Only a Pending purchase can be paid; {0} is {1}.").format(name, doc.payment_status))
+	if not pay_date or not payment_mode:
+		frappe.throw(_("Pay Date and Payment Mode are needed to confirm a payment."), title=_("Missing details"))
+	modes = [m for m in (doc.meta.get_field("payment_mode").options or "").split("\n") if m]
+	if payment_mode not in modes:
+		frappe.throw(_("Payment Mode must be one of: {0}.").format(", ".join(modes)))
+
+	doc.pay_date = getdate(pay_date)
+	doc.payment_mode = payment_mode
+	if payment_details:
+		doc.payment_details = payment_details
+	doc.payment_status = "Paid"
+	doc.flags.confirming_payment = True
+	doc.flags.confirming_amount = amount if amount not in (None, "") else None
+	doc.save(ignore_permissions=True)
+	doc.add_comment(
+		"Info",
+		_("Payment confirmed: {0} by {1} on {2}.").format(
+			fmt_money(doc.paid_amount, currency="INR"), payment_mode, formatdate(doc.pay_date)
+		),
+	)
+	return {"payment_status": doc.payment_status, "paid_amount": doc.paid_amount, "balance_amount": doc.balance_amount}
+
+
+@frappe.whitelist()
+def reverse_payment(name, reason=None):
+	"""Take a Paid purchase back to Pending. For an administrator, with a reason; the purchase can then be corrected."""
+	if "System Manager" not in frappe.get_roles(frappe.session.user):
+		frappe.throw(_("Only an administrator (System Manager) can reverse a payment."), frappe.PermissionError)
+	if not (reason or "").strip():
+		frappe.throw(_("Give the reason for reversing the payment."), title=_("Reason needed"))
+
+	doc = frappe.get_doc("Grain Purchase", name, for_update=True)
+	if doc.payment_status != "Paid":
+		frappe.throw(_("{0} is not Paid, so there is no payment to reverse.").format(name))
+	was_paid = doc.paid_amount
+	doc.payment_status = "Pending"
+	doc.flags.reversing_payment = True
+	doc.save(ignore_permissions=True)
+	doc.add_comment(
+		"Info", _("Payment of {0} reversed. Reason: {1}").format(fmt_money(was_paid, currency="INR"), reason.strip())
+	)
+	return {"payment_status": doc.payment_status, "paid_amount": doc.paid_amount, "balance_amount": doc.balance_amount}
+

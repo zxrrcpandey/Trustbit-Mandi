@@ -27,7 +27,7 @@ frappe.query_reports["Mandi All In One Report"] = {
 			"fieldname": "payment_status",
 			"label": __("Payment Status"),
 			"fieldtype": "Select",
-			"options": "\nPaid\nPending\nPartial\nCancelled"
+			"options": "\nPaid\nPending\nCancelled"
 		},
 		{
 			"fieldname": "payment_mode",
