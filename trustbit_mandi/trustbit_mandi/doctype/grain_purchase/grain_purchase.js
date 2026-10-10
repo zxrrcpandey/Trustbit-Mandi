@@ -24,10 +24,25 @@ frappe.ui.form.on('Grain Purchase', {
     },
 
     refresh: function(frm) {
-        if (!frm.is_new()) {
+        // Someone who only confirms payments (the Mandi Accounts role) can read a purchase but not save
+        // it, and may not be allowed to read the tax payments. Offer each button only to those who can
+        // use it; asking the server for records the user may not read pops a permission error.
+        let can_write = !!(frm.perm && frm.perm[0] && frm.perm[0].write);
+        let can_see_tax = frappe.model.can_read('Tax Payment Record');
+
+        if (!frm.is_new() && can_write) {
             frm.add_custom_button(__('Save & Print'), function() {
-                frm.save().then(() => {
+                // With nothing to save, frm.save() only says "No changes in document" and never
+                // answers, so the print never opened. And it answers the same way whether the save
+                // went through or was refused, so print only once the form is really saved.
+                if (!frm.is_dirty()) {
                     frm.print_doc();
+                    return;
+                }
+                frm.save().then(() => {
+                    if (!frm.is_dirty()) {
+                        frm.print_doc();
+                    }
                 });
             }).addClass('btn-primary');
 
@@ -36,9 +51,11 @@ frappe.ui.form.on('Grain Purchase', {
             }, __('Actions'));
         }
 
-        frm.add_custom_button(__('View Tax Balance'), function() {
-            show_tax_balance_dialog();
-        }, __('Actions'));
+        if (can_see_tax) {
+            frm.add_custom_button(__('View Tax Balance'), function() {
+                show_tax_balance_dialog();
+            }, __('Actions'));
+        }
 
         setup_payment_actions(frm);
 
@@ -54,7 +71,9 @@ frappe.ui.form.on('Grain Purchase', {
             }, 500);
         }
 
-        fetch_tax_balance(frm);
+        if (can_see_tax) {
+            fetch_tax_balance(frm);
+        }
     },
 
     contract_date: function(frm) {
@@ -319,7 +338,7 @@ function confirm_payment_dialog(frm) {
         title: __('Confirm Payment'),
         fields: [
             { fieldname: 'net_amount', label: __('Amount paid (the full Net Amount)'), fieldtype: 'Currency', read_only: 1, default: frm.doc.net_amount },
-            { fieldname: 'pay_date', label: __('Pay Date'), fieldtype: 'Date', reqd: 1, default: frappe.datetime.get_today() },
+            { fieldname: 'pay_date', label: __('Payment Date'), fieldtype: 'Date', reqd: 1, default: frappe.datetime.get_today() },
             { fieldname: 'payment_mode', label: __('Payment Mode'), fieldtype: 'Select', options: [''].concat(modes).join('\n'), reqd: 1, default: frm.doc.payment_mode || '' },
             { fieldname: 'payment_details', label: __('Payment Details'), fieldtype: 'Small Text', default: frm.doc.payment_details || '' }
         ],

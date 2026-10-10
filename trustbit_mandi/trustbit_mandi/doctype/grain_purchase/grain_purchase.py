@@ -274,7 +274,7 @@ def confirm_payment(name, pay_date=None, payment_mode=None, payment_details=None
 	if doc.payment_status != "Pending":
 		frappe.throw(_("Only a Pending purchase can be paid; {0} is {1}.").format(name, doc.payment_status))
 	if not pay_date or not payment_mode:
-		frappe.throw(_("Pay Date and Payment Mode are needed to confirm a payment."), title=_("Missing details"))
+		frappe.throw(_("Payment Date and Payment Mode are needed to confirm a payment."), title=_("Missing details"))
 	modes = [m for m in (doc.meta.get_field("payment_mode").options or "").split("\n") if m]
 	if payment_mode not in modes:
 		frappe.throw(_("Payment Mode must be one of: {0}.").format(", ".join(modes)))
