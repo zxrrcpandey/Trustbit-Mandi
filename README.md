@@ -42,6 +42,36 @@ bench build --app trustbit_mandi
   tax name or rate is built into the code.
 - **Hamali Rate Master** and the bank masters, before the first Grain Purchase.
 
+### Payment of a purchase
+
+A Grain Purchase is **Pending** until accounts confirm that it has been paid.
+
+- While it is Pending, Paid Amount shows the Net Amount as the figure prepared for payment and
+  cannot be typed, and the whole Net Amount is outstanding.
+- It becomes **Paid** only through the **Confirm Payment** button: the role `Mandi Accounts` or a
+  System Manager, with a payment date and a payment mode, for the full Net Amount. Choosing Paid by
+  hand is refused.
+- A paid purchase keeps its rates and refuses any change of its Net Amount. A System Manager can
+  **Reverse Payment** with a reason (Actions menu); the purchase is then Pending and can be
+  corrected.
+- **Cancelled** owes nothing. There is no Partial.
+- The role `Mandi Accounts` is created empty at install. It reads purchases and confirms payments;
+  it cannot edit a purchase.
+- **Save & Print** prints at once when there is nothing to save, and after a save only if the save
+  went through.
+
+Two people confirming the same purchase at the same moment: only one goes through (tried with two
+database connections, October 2026). Where MariaDB runs with `innodb_snapshot_isolation` on, the
+second person sees the database's own message, "Record has changed since last read", not "already
+confirmed".
+
+```bash
+bench --site $SITE execute trustbit_mandi.rehearsals.payment.run    # 41 cases, rolled back
+```
+
+The rehearsal does the thing the right way and then tries each wrong way. It does not run the
+list's bulk update, which commits by itself and cannot be rolled back.
+
 ### Reports and totals
 
 The Mandi Purchase Report and the Mandi Payment Report each end in **one** bold total row, added
