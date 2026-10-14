@@ -85,14 +85,7 @@ class MandiStockEntry(Document):
 		try:
 			company = self.company or frappe.db.get_value("Warehouse", self.warehouse, "company")
 			if not company:
-				frappe.msgprint(
-					_("Warning: No company found for warehouse {0}. ERPNext Stock Entry not created.").format(
-						self.warehouse
-					),
-					indicator="orange",
-					alert=True,
-				)
-				return
+				frappe.throw(_("Warehouse {0} belongs to no company.").format(self.warehouse))
 
 			se = frappe.new_doc("Stock Entry")
 			se.set_posting_time = 1
@@ -147,14 +140,14 @@ class MandiStockEntry(Document):
 				alert=True,
 			)
 		except Exception as e:
-			frappe.log_error(
-				title="ERPNext Stock Entry creation failed for {0}".format(self.name),
-				message=frappe.get_traceback(),
-			)
-			frappe.msgprint(
-				_("Warning: Could not create ERPNext Stock Entry. Error: {0}").format(str(e)),
-				indicator="orange",
-				alert=True,
+			# The entry is not submitted when ERPNext's stock does not move with it (until 2026-10-15 it
+			# was, with only an orange note and an Error Log row).
+			frappe.local.message_log = []
+			frappe.throw(
+				_("The stock could not be moved in ERPNext, so {0} is not submitted. ERPNext says: {1}").format(
+					self.name, frappe.utils.strip_html(str(e)) or type(e).__name__
+				),
+				title=_("Stock not moved"),
 			)
 
 	def cancel_erp_stock_entry(self):
@@ -172,16 +165,12 @@ class MandiStockEntry(Document):
 					alert=True,
 				)
 		except Exception as e:
-			frappe.log_error(
-				title="ERPNext Stock Entry cancellation failed for {0}".format(self.name),
-				message=frappe.get_traceback(),
-			)
-			frappe.msgprint(
-				_("Warning: Could not cancel ERPNext Stock Entry {0}. Error: {1}").format(
-					self.erp_stock_entry, str(e)
+			frappe.local.message_log = []
+			frappe.throw(
+				_("ERPNext Stock Entry {0} could not be cancelled, so {1} stays as it is. ERPNext says: {2}").format(
+					self.erp_stock_entry, self.name, frappe.utils.strip_html(str(e)) or type(e).__name__
 				),
-				indicator="orange",
-				alert=True,
+				title=_("Stock not moved"),
 			)
 
 

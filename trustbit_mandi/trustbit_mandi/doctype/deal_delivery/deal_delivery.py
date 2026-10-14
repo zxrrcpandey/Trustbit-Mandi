@@ -28,6 +28,9 @@ class DealDelivery(Document):
 			row.is_extra = 1 if not row.soda else 0
 
 	def validate_items(self):
+		if not self.items:
+			frappe.throw("Add at least one item to deliver.", title="Nothing to deliver")
+
 		for row in self.items:
 			if not row.deliver_qty or flt(row.deliver_qty) <= 0:
 				frappe.throw("Row {0}: Deliver Qty must be greater than 0.".format(row.idx))
@@ -102,25 +105,16 @@ class DealDelivery(Document):
 			create_stock_entry_from_delivery,
 		)
 
-		try:
-			mse_name = create_stock_entry_from_delivery(self.name)
-			frappe.msgprint(
-				"Stock Entry {0} created.".format(
-					'<a href="/app/mandi-stock-entry/{0}">{0}</a>'.format(mse_name)
-				),
-				indicator="green",
-				alert=True,
-			)
-		except Exception as e:
-			frappe.log_error(
-				title="Stock Entry Creation Failed for {0}".format(self.name),
-				message=str(e),
-			)
-			frappe.msgprint(
-				"Warning: Could not auto-create stock entry. Error: {0}".format(str(e)),
-				indicator="orange",
-				alert=True,
-			)
+		# Not caught: if the stock cannot be issued, the delivery is not submitted either (it used to be
+		# submitted with only an orange note and an Error Log row, and no stock moved).
+		mse_name = create_stock_entry_from_delivery(self.name)
+		frappe.msgprint(
+			"Stock Entry {0} created.".format(
+				'<a href="/app/mandi-stock-entry/{0}">{0}</a>'.format(mse_name)
+			),
+			indicator="green",
+			alert=True,
+		)
 
 	def cancel_stock_entry(self):
 		"""Cancel linked Mandi Stock Entry when delivery is cancelled."""
