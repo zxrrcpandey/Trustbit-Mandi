@@ -94,27 +94,24 @@ class MandiStockEntry(Document):
 			se.company = company
 			se.remarks = "Auto-created from Mandi Stock Entry {0}".format(self.name)
 
-			# Aggregate items by item_code, converting packs to KG
-			item_kg_map = {}
+			# What moves in ERPNext for each row (stock_line): by default the item itself, by the kg.
+			lines = {}
 			for row in self.items:
-				if row.item not in item_kg_map:
-					item_kg_map[row.item] = 0
-				item_kg_map[row.item] += flt(row.qty) * flt(row.pack_weight_kg)
+				line = stock_line(row.item, flt(row.pack_weight_kg), flt(row.qty))
+				key = (line["item_code"], line["uom"])
+				lines[key] = lines.get(key, 0) + flt(line["qty"])
 
 			cost_center = frappe.get_cached_value("Company", company, "cost_center")
 			expense_account = frappe.get_cached_value("Company", company, "stock_adjustment_account")
 
-			# Determine the UOM name (ERPNext may have "Kg" or "KG")
-			uom_name = get_kg_uom()
-
-			for item_code, total_kg in item_kg_map.items():
+			for (item_code, uom), qty in lines.items():
 				item_row = {
 					"item_code": item_code,
-					"qty": flt(total_kg, 3),
-					"uom": uom_name,
-					"stock_uom": uom_name,
+					"qty": flt(qty, 3),
+					"uom": uom,
+					"stock_uom": uom,
 					"conversion_factor": 1.0,
-					"transfer_qty": flt(total_kg, 3),
+					"transfer_qty": flt(qty, 3),
 					"allow_zero_valuation_rate": 1,
 					"basic_rate": 0,
 				}
@@ -144,7 +141,7 @@ class MandiStockEntry(Document):
 			# was, with only an orange note and an Error Log row).
 			frappe.local.message_log = []
 			frappe.throw(
-				_("The stock could not be moved in ERPNext, so {0} is not submitted. ERPNext says: {1}").format(
+				_("The stock could not be moved in ERPNext, so {0} is not submitted. The reason: {1}").format(
 					self.name, frappe.utils.strip_html(str(e)) or type(e).__name__
 				),
 				title=_("Stock not moved"),
@@ -167,11 +164,25 @@ class MandiStockEntry(Document):
 		except Exception as e:
 			frappe.local.message_log = []
 			frappe.throw(
-				_("ERPNext Stock Entry {0} could not be cancelled, so {1} stays as it is. ERPNext says: {2}").format(
+				_("ERPNext Stock Entry {0} could not be cancelled, so {1} stays as it is. The reason: {2}").format(
 					self.erp_stock_entry, self.name, frappe.utils.strip_html(str(e)) or type(e).__name__
 				),
 				title=_("Stock not moved"),
 			)
+
+
+def stock_line(item, pack_weight_kg, qty):
+	"""What a Mandi row of `qty` packs of `pack_weight_kg` moves in ERPNext's stock.
+
+	By default the item itself, by the kg. An app that keeps an item's stock elsewhere answers the hook
+	`mandi_stock_line` (hooks.py: a list of dotted paths to functions of (item, pack_weight_kg, qty)
+	that return {"item_code", "qty", "uom"}, or None for an item that is not theirs, or throw to refuse
+	the row). A sales app that stocks the packs of a product, not the product, gives the pack here."""
+	for path in reversed(frappe.get_hooks("mandi_stock_line") or []):
+		line = frappe.get_attr(path)(item, pack_weight_kg, qty)
+		if line:
+			return line
+	return {"item_code": item, "qty": flt(qty) * flt(pack_weight_kg), "uom": get_kg_uom()}
 
 
 def get_kg_uom():
