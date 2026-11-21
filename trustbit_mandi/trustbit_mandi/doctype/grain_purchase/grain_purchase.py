@@ -286,6 +286,7 @@ def confirm_payment(name, pay_date=None, payment_mode=None, payment_details=None
 	doc.payment_status = "Paid"
 	doc.flags.confirming_payment = True
 	doc.flags.confirming_amount = amount if amount not in (None, "") else None
+	doc.flags.ignore_mandatory = True  # a payment step must still work on a purchase saved before Address was required
 	doc.save(ignore_permissions=True)
 	doc.add_comment(
 		"Info",
@@ -310,6 +311,7 @@ def reverse_payment(name, reason=None):
 	was_paid = doc.paid_amount
 	doc.payment_status = "Pending"
 	doc.flags.reversing_payment = True
+	doc.flags.ignore_mandatory = True  # a payment step must still work on a purchase saved before Address was required
 	doc.save(ignore_permissions=True)
 	doc.add_comment(
 		"Info", _("Payment of {0} reversed. Reason: {1}").format(fmt_money(was_paid, currency="INR"), reason.strip())

@@ -54,7 +54,7 @@ def _user(email, roles):
 
 
 def _purchase(**kw):
-	values = {"doctype": "Grain Purchase", "farmer_name": "ZZ Rehearsal Farmer", "contract_date": nowdate(),
+	values = {"doctype": "Grain Purchase", "farmer_name": "ZZ Rehearsal Farmer", "address": "ZZ Village", "contract_date": nowdate(),
 		"kg_of_bag": 60, "actual_bag": 100, "auction_rate": 2500, "hamali_rate_include": 1}
 	values.update(kw)
 	return frappe.get_doc(values).insert()
@@ -188,6 +188,28 @@ def run():
 		t.check("40 Payment Status choices are Pending, Paid, Cancelled", options == ["Pending", "Paid", "Cancelled"], ", ".join(options))
 		t.check("41 the Mandi Accounts role exists and can read purchases but not write them",
 			bool(frappe.db.exists("Role", gp.PAYMENT_ROLE)) and frappe.has_permission("Grain Purchase", "read", user=ACCOUNTS) and not frappe.has_permission("Grain Purchase", "write", user=ACCOUNTS), "")
+
+		# ---- 9. Address is required on new records and ordinary edits; payment still works on old blank ones
+		frappe.set_user(STOREMAN)
+		t.refused("42 a new purchase with no Address", lambda: _purchase(address=None), "Address")
+		t.refused("43 a new purchase with an empty Address", lambda: _purchase(address=""), "Address")
+		t.refused("44 a new purchase with only spaces in Address", lambda: _purchase(address="   \n "), "Address")
+		frappe.set_user(ADMIN)
+		blank = _purchase(farmer_name="ZZ Old Blank Address").name; bnet = flt(_state(blank).net_amount)
+		frappe.db.set_value("Grain Purchase", blank, "address", "", update_modified=False)
+		def clear_address():
+			d = frappe.get_doc("Grain Purchase", cn); d.address = ""; d.save()
+		t.refused("45 Address cleared from an existing purchase", clear_address, "Address", as_user=STOREMAN)
+		def edit_blank():
+			d = frappe.get_doc("Grain Purchase", blank); d.phone_number = "9000000002"; d.save()
+		t.refused("46 an old blank-Address purchase edited without filling Address", edit_blank, "Address", as_user=STOREMAN)
+		frappe.set_user(ACCOUNTS); gp.confirm_payment(blank, today, "Cash", amount=bnet); frappe.set_user(ADMIN)
+		t.check("47 Confirm Payment still works on an old blank-Address purchase", _is(blank, "Paid", bnet, 0), _show(blank))
+		gp.reverse_payment(blank, "rehearsal")
+		t.check("48 Reverse Payment still works on it", _is(blank, "Pending", bnet, bnet), _show(blank))
+		t.check("49 the payment steps did not invent an Address", not frappe.db.get_value("Grain Purchase", blank, "address"), "")
+		d = frappe.get_doc("Grain Purchase", blank); d.address = "ZZ Filled"; d.phone_number = "9000000003"; d.save()
+		t.check("50 once Address is filled, the old purchase saves normally", frappe.db.get_value("Grain Purchase", blank, "phone_number") == "9000000003", "")
 	except Exception:
 		t.check("rehearsal ran to the end", False, frappe.get_traceback()[-600:])
 	finally:
