@@ -2,6 +2,7 @@
  "actions": [],
  "autoname": "GP-.DD.-.MM.-.YYYY.-.####",
  "creation": "2026-02-05 10:00:00.000000",
+ "default_view": "Report",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -415,7 +416,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-07 12:00:00.000000",
+ "modified": "2026-11-22 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Trustbit Mandi",
  "name": "Grain Purchase",
