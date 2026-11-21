@@ -338,7 +338,7 @@
  "shortcuts": [
   {
    "color": "Blue",
-   "doc_view": "List",
+   "doc_view": "Report",
    "label": "Grain Purchase",
    "link_to": "Grain Purchase",
    "type": "DocType"
